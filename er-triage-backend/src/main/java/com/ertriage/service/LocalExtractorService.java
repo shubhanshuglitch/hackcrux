@@ -12,6 +12,10 @@ import java.util.regex.*;
 @Component
 public class LocalExtractorService {
 
+    private static final List<String> NEGATION_WORDS = List.of(
+            "no ", "not ", "without ", "denies ", "denying ",
+            "resolved ", "stopped ", "controlled ", "negative for ");
+
     public Map<String, Object> extract(String rawInput) {
         Map<String, Object> result = new HashMap<>();
         String text = rawInput.trim();
@@ -26,7 +30,6 @@ public class LocalExtractorService {
     }
 
     private String extractName(String text) {
-        // Look for patterns like "patient John", "name is Sarah", "Mr. Ahmed"
         Pattern namePattern = Pattern.compile(
                 "(?:patient|name is|name:|mr\\.?|mrs\\.?|ms\\.?|dr\\.?)\\s+([A-Z][a-z]+(?:\\s[A-Z][a-z]+)?)",
                 Pattern.CASE_INSENSITIVE);
@@ -37,7 +40,6 @@ public class LocalExtractorService {
     }
 
     private Integer extractAge(String text) {
-        // "35 year old", "35yo", "35-year-old", "age 35", "aged 35"
         Pattern agePattern = Pattern.compile(
                 "(?:age[d]?\\s+)?(\\d{1,3})\\s*[-]?\\s*(?:year[s]?[-\\s]?old|yo\\b)|\\bage\\s+(\\d{1,3})",
                 Pattern.CASE_INSENSITIVE);
@@ -57,7 +59,7 @@ public class LocalExtractorService {
     private String extractVitals(String text) {
         List<String> vitals = new ArrayList<>();
 
-        // Blood Pressure: "BP 175/110", "BP 90/60", "175/110 mmhg"
+        // Blood Pressure
         Pattern bpPat = Pattern.compile(
                 "(?:bp|blood pressure)[:\\s]*([\\d]{2,3}\\s*/\\s*[\\d]{2,3})|\\b([\\d]{2,3}/[\\d]{2,3})\\s*(?:mmhg)?",
                 Pattern.CASE_INSENSITIVE);
@@ -67,7 +69,7 @@ public class LocalExtractorService {
             vitals.add("BP " + bp.replaceAll("\\s+", ""));
         }
 
-        // Pulse/HR: "pulse 122", "HR 88", "heart rate 110", "122 bpm"
+        // Pulse/HR
         Pattern pulsePat = Pattern.compile(
                 "(?:pulse|hr|heart rate)[:\\s]*(\\d{2,3})|\\b(\\d{2,3})\\s*bpm",
                 Pattern.CASE_INSENSITIVE);
@@ -77,7 +79,7 @@ public class LocalExtractorService {
             vitals.add("Pulse " + rate + " bpm");
         }
 
-        // Temperature: "temp 39", "temperature 38.5", "39°C", "38.5C"
+        // Temperature
         Pattern tempPat = Pattern.compile(
                 "(?:temp(?:erature)?)[:\\s]*([\\d]{2}(?:\\.[\\d])?)|\\b([3-4][\\d](?:\\.[\\d])?)\\s*(?:°?[cC]|degrees)",
                 Pattern.CASE_INSENSITIVE);
@@ -87,7 +89,7 @@ public class LocalExtractorService {
             vitals.add("Temp " + temp + "°C");
         }
 
-        // SpO2: "SpO2 92", "O2 sat 95", "oxygen saturation 91%"
+        // SpO2
         Pattern spo2Pat = Pattern.compile(
                 "(?:spo2|o2 sat|oxygen saturation)[:\\s]*(\\d{2,3})",
                 Pattern.CASE_INSENSITIVE);
@@ -99,7 +101,6 @@ public class LocalExtractorService {
     }
 
     private String extractSymptoms(String text) {
-        // Known clinical symptom keywords to scan for
         List<String> knownSymptoms = List.of(
                 "chest pain", "chest pressure", "chest tightness",
                 "shortness of breath", "difficulty breathing", "dyspnea",
@@ -114,12 +115,18 @@ public class LocalExtractorService {
         List<String> found = new ArrayList<>();
         String lower = text.toLowerCase();
         for (String symptom : knownSymptoms) {
-            if (lower.contains(symptom))
-                found.add(symptom);
+            int idx = lower.indexOf(symptom);
+            if (idx >= 0) {
+                // Check negation: skip if preceded by "no ", "not ", etc.
+                String before = lower.substring(0, idx);
+                boolean negated = NEGATION_WORDS.stream().anyMatch(before::endsWith);
+                if (!negated) {
+                    found.add(symptom);
+                }
+            }
         }
 
         if (found.isEmpty()) {
-            // Fallback: use first 150 chars of raw input as symptom description
             return text.length() > 150 ? text.substring(0, 150) + "..." : text;
         }
         return String.join(", ", found);

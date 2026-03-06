@@ -1,0 +1,93 @@
+# AI-Powered ER Triage System — Implementation Plan
+
+A full-stack emergency room triage assistant. A nurse clicks **Record**, speaks patient details in natural language, and the system uses AI (Gemini API) to extract structured data and place the patient on a live priority Kanban board.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Gemini API Key**: The backend calls the Gemini API. You will need to provide your Google Gemini API key. It will be placed in the Spring Boot `application.properties` as `gemini.api.key=YOUR_KEY_HERE`. Please have it ready before running the backend.
+
+> [!NOTE]
+> **Stack Summary**:
+> - Frontend: React 18 + Vite
+> - Backend: Java 17 + Spring Boot 3 (REST, JPA, H2)
+> - AI: Google Gemini 1.5 Flash API (via HTTP)
+> - Voice: Web Speech API (browser-native, zero cost)
+> - Database: H2 In-Memory
+
+---
+
+## Proposed Changes
+
+### Backend — Spring Boot
+
+#### [NEW] `d:\demo\er-triage-backend\` (Maven project)
+
+**Files to create:**
+- `pom.xml` — Spring Boot Web, H2, Spring Data JPA, Lombok, Jackson
+- `src/main/resources/application.properties` — H2 config, CORS, Gemini key placeholder
+- `Patient.java` — JPA entity: id, name, age, symptoms, vitals, priority (RED/YELLOW/GREEN), rawInput, timestamp
+- `PatientRepository.java` — `JpaRepository<Patient, Long>`
+- `GeminiService.java` — Calls Gemini REST API with a strict system prompt to extract JSON `{age, symptoms, vitals, priority}` from raw speech text
+- `PatientService.java` — Orchestrates: receives raw text → calls GeminiService → maps to Patient entity → saves → returns DTO
+- `PatientController.java` — REST endpoints:
+  - `POST /api/patients` — body: `{rawInput: string}`, returns saved patient card JSON
+  - `GET /api/patients` — returns all patients sorted by priority + timestamp
+  - `DELETE /api/patients/{id}` — remove a patient card
+- `CorsConfig.java` — Allow requests from `http://localhost:5173`
+
+---
+
+### Frontend — React + Vite
+
+#### [NEW] `d:\demo\er-triage-frontend\` (Vite project)
+
+**Files to create:**
+- `src/App.jsx` — Root, sets up layout (Header + KanbanBoard + VoiceInput)
+- `src/api/patientApi.js` — `fetch`-based API calls to Spring Boot
+- `src/components/Header.jsx` — Branded top bar with title and status indicator
+- `src/components/VoiceCapture.jsx` — Web Speech API recording button, status display, transcript preview, submits to backend
+- `src/components/KanbanBoard.jsx` — 3-column layout (Critical/Red, Urgent/Yellow, Standard/Green), polls `GET /api/patients` every 3 seconds
+- `src/components/PatientCard.jsx` — Card showing name, age, symptoms, vitals, timestamp, dismiss button
+- `src/index.css` — Full design system: dark navy theme, glassmorphism, gradient accents, animations
+
+---
+
+## Verification Plan
+
+### Automated / Browser Tests
+
+1. **Start backend:**
+   ```
+   cd d:\demo\er-triage-backend
+   mvn spring-boot:run
+   ```
+   Verify H2 console at `http://localhost:8080/h2-console` and `GET http://localhost:8080/api/patients` returns `[]`.
+
+2. **Start frontend:**
+   ```
+   cd d:\demo\er-triage-frontend
+   npm run dev
+   ```
+   Open `http://localhost:5173`.
+
+### Manual Verification
+
+3. **Voice Input Flow:**
+   - Click the **🎙 Record** button
+   - Say: *"35-year-old male, chest pain, shortness of breath, BP 160/100, pulse 110"*
+   - The transcript should appear in the text box
+   - Click **Submit** — a Red/Critical patient card should appear on the dashboard
+
+4. **Priority Classification:**
+   - Record: *"22-year-old female, mild headache, temperature 37.5"* → Should create a **Yellow** card
+   - Record: *"45-year-old, routine checkup, no acute symptoms"* → Should create a **Green** card
+
+5. **Live Dashboard:**
+   - Open a second browser tab to `http://localhost:5173`
+   - Add a patient via the first tab → within 3 seconds it should appear on the second tab
+
+6. **Dismiss Patient:**
+   - Click the ✕ button on any patient card — card should disappear from dashboard
