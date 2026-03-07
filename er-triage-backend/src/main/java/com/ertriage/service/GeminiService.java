@@ -2,7 +2,6 @@ package com.ertriage.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class GeminiService {
 
     private final LocalExtractorService localExtractorService;
@@ -28,6 +26,10 @@ public class GeminiService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
+
+    public GeminiService(LocalExtractorService localExtractorService) {
+        this.localExtractorService = localExtractorService;
+    }
 
     public Map<String, Object> extractPatientData(String rawInput) {
         try {
@@ -62,30 +64,29 @@ public class GeminiService {
 
                     YELLOW (Urgent — serious but stable):
                     - Moderate chest discomfort without other RED signs
-                    - Fever > 38.5°C with systemic symptoms
-                    - Moderate pain (4–7/10)
+                    - Fever > 38.5 with systemic symptoms
+                    - Moderate pain (4-7/10)
                     - Persistent vomiting or diarrhea with dehydration
                     - Fractures (closed, non-displaced)
                     - Moderate lacerations requiring sutures
-                    - BP 140–160 systolic with no other RED signs
-                    - Pulse 100–110 bpm with no other RED signs
+                    - BP 140-160 systolic with no other RED signs
+                    - Pulse 100-110 bpm with no other RED signs
                     - Acute abdominal pain (moderate)
                     - Confusion in elderly patients
 
                     GREEN (Standard — non-urgent):
-                    - Mild pain (1–3/10)
+                    - Mild pain (1-3/10)
                     - Minor cuts, bruises, sprains
-                    - Mild fever < 38.5°C, cold symptoms
+                    - Mild fever < 38.5, cold symptoms
                     - Routine check-up or prescription refill
                     - Stable chronic condition follow-up
 
-                    IMPORTANT: When in doubt between RED and YELLOW, choose RED. Patient safety is the priority.
+                    IMPORTANT: When in doubt between RED and YELLOW, choose RED.
 
                     Clinical input: %s
                     """
                     .formatted(rawInput);
 
-            // Build request payload
             Map<String, Object> textPart = new HashMap<>();
             textPart.put("text", systemPrompt);
 
@@ -111,23 +112,16 @@ public class GeminiService {
             }
 
             JsonNode root = objectMapper.readTree(response.body());
-            String generatedText = root
-                    .path("candidates").get(0)
-                    .path("content")
-                    .path("parts").get(0)
-                    .path("text")
+            String generatedText = root.path("candidates").get(0).path("content").path("parts").get(0).path("text")
                     .asText();
 
-            // Clean up the response text (remove markdown code blocks if present)
             generatedText = generatedText.trim();
-            if (generatedText.startsWith("```json")) {
+            if (generatedText.startsWith("```json"))
                 generatedText = generatedText.substring(7);
-            } else if (generatedText.startsWith("```")) {
+            else if (generatedText.startsWith("```"))
                 generatedText = generatedText.substring(3);
-            }
-            if (generatedText.endsWith("```")) {
+            if (generatedText.endsWith("```"))
                 generatedText = generatedText.substring(0, generatedText.length() - 3);
-            }
             generatedText = generatedText.trim();
 
             JsonNode patientData = objectMapper.readTree(generatedText);
@@ -138,7 +132,6 @@ public class GeminiService {
             result.put("symptoms", patientData.path("symptoms").asText("Not specified"));
             result.put("vitals", patientData.path("vitals").asText("Not recorded"));
             result.put("priority", patientData.path("priority").asText("GREEN"));
-
             return result;
 
         } catch (Exception e) {

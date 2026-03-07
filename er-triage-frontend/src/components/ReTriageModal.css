@@ -1,0 +1,191 @@
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 500px;
+    color: #e2e8f0;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.modal-close:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-patient-info {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.info-item {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.info-item .label {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+.info-item .value {
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.priority-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.badge-red {
+    background: #ef4444;
+    color: white;
+}
+
+.badge-yellow {
+    background: #f59e0b;
+    color: white;
+}
+
+.badge-green {
+    background: #10b981;
+    color: white;
+}
+
+.modal-error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+    color: #fca5a5;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: #cbd5e1;
+}
+
+.field-hint {
+    display: block;
+    font-size: 0.7rem;
+    color: #64748b;
+    font-weight: 400;
+    margin-top: 2px;
+}
+
+.form-group textarea {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.form-group textarea:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.btn-cancel {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+}
+
+.btn-retriage {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.btn-retriage:hover {
+    opacity: 0.9;
+}
+
+.btn-retriage:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

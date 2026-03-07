@@ -1,48 +1,33 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchPatients } from '../api/patientApi.js';
+import { fetchPatients, retriagePatient } from '../api/patientApi.js';
 import PatientCard from './PatientCard.jsx';
+import ReTriageModal from './ReTriageModal.jsx';
 
 const POLL_INTERVAL_MS = 4000;
 
 const COLUMNS = [
     {
-        key: 'RED',
-        icon: '🔴',
-        title: 'Critical',
-        desc: 'Immediate action required',
-        headerClass: 'col-header-red',
-        titleClass: 'col-title-red',
-        badgeClass: 'badge-red',
-        emptyIcon: '✅',
-        emptyText: 'No critical patients',
+        key: 'RED', icon: '🔴', title: 'Critical', desc: 'Immediate action required',
+        headerClass: 'col-header-red', titleClass: 'col-title-red', badgeClass: 'badge-red',
+        emptyIcon: '✅', emptyText: 'No critical patients'
     },
     {
-        key: 'YELLOW',
-        icon: '🟡',
-        title: 'Urgent',
-        desc: 'Monitor closely',
-        headerClass: 'col-header-yellow',
-        titleClass: 'col-title-yellow',
-        badgeClass: 'badge-yellow',
-        emptyIcon: '👍',
-        emptyText: 'No urgent patients',
+        key: 'YELLOW', icon: '🟡', title: 'Urgent', desc: 'Monitor closely',
+        headerClass: 'col-header-yellow', titleClass: 'col-title-yellow', badgeClass: 'badge-yellow',
+        emptyIcon: '👍', emptyText: 'No urgent patients'
     },
     {
-        key: 'GREEN',
-        icon: '🟢',
-        title: 'Standard',
-        desc: 'Safe to wait',
-        headerClass: 'col-header-green',
-        titleClass: 'col-title-green',
-        badgeClass: 'badge-green',
-        emptyIcon: '🏥',
-        emptyText: 'No standard patients',
+        key: 'GREEN', icon: '🟢', title: 'Standard', desc: 'Safe to wait',
+        headerClass: 'col-header-green', titleClass: 'col-title-green', badgeClass: 'badge-green',
+        emptyIcon: '🏥', emptyText: 'No standard patients'
     },
 ];
 
 export default function KanbanBoard({ newPatient, onPatientsChange }) {
     const [patients, setPatients] = useState([]);
     const [lastUpdated, setLastUpdated] = useState(null);
+    const [nowTs, setNowTs] = useState(Date.now());
+    const [retriageModal, setReTriageModal] = useState(null);
 
     const loadPatients = useCallback(async () => {
         try {
@@ -50,32 +35,34 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
             setPatients(data);
             setLastUpdated(new Date());
             if (onPatientsChange) onPatientsChange(data);
-        } catch (err) {
-            // Silently fail on polling errors (backend might not be up yet)
-            console.warn('Polling error:', err.message);
-        }
+        } catch (err) { console.warn('Polling error:', err.message); }
     }, [onPatientsChange]);
 
-    // Initial load + polling
     useEffect(() => {
         loadPatients();
         const interval = setInterval(loadPatients, POLL_INTERVAL_MS);
         return () => clearInterval(interval);
     }, [loadPatients]);
 
-    // When a new patient is submitted from VoiceCapture, add immediately
+    useEffect(() => {
+        const clock = setInterval(() => setNowTs(Date.now()), 1000);
+        return () => clearInterval(clock);
+    }, []);
+
     useEffect(() => {
         if (newPatient) {
             setPatients(prev => {
-                const exists = prev.find(p => p.id === newPatient.id);
-                if (exists) return prev;
+                if (prev.find(p => p.id === newPatient.id)) return prev;
                 return [newPatient, ...prev];
             });
         }
     }, [newPatient]);
 
-    const handleDismiss = (id) => {
-        setPatients(prev => prev.filter(p => p.id !== id));
+    const handleDismiss = (id) => setPatients(prev => prev.filter(p => p.id !== id));
+    const handleRetriage = (patient) => setReTriageModal(patient);
+    const handleReTriageSubmit = async (id, symptoms, vitals) => {
+        await retriagePatient(id, symptoms, vitals);
+        await loadPatients();
     };
 
     const formatUpdated = () => {
@@ -91,7 +78,7 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                     <div className="board-subtitle">Real-time patient priority queue — auto-refreshes every 4 seconds</div>
                 </div>
                 <div className="refresh-indicator">
-                    <div className="refresh-dot" style={{ animation: 'pulse-ring 2s ease-out infinite' }}></div>
+                    <div className="refresh-dot"></div>
                     Last updated: {formatUpdated()}
                 </div>
             </div>
@@ -109,7 +96,6 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                                 </div>
                                 <div className={`col-badge ${col.badgeClass}`}>{colPatients.length}</div>
                             </div>
-
                             <div className="col-body">
                                 {colPatients.length === 0 ? (
                                     <div className="col-empty">
@@ -118,11 +104,8 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                                     </div>
                                 ) : (
                                     colPatients.map(patient => (
-                                        <PatientCard
-                                            key={patient.id}
-                                            patient={patient}
-                                            onDismiss={handleDismiss}
-                                        />
+                                        <PatientCard key={patient.id} patient={patient} nowTs={nowTs}
+                                            onDismiss={handleDismiss} onRetriage={handleRetriage} />
                                     ))
                                 )}
                             </div>
@@ -130,6 +113,12 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                     );
                 })}
             </div>
+
+            {retriageModal && (
+                <ReTriageModal patient={retriageModal}
+                    onClose={() => setReTriageModal(null)}
+                    onRetriage={handleReTriageSubmit} />
+            )}
         </div>
     );
 }

@@ -19,7 +19,8 @@ public class TriageRulesEngine {
     private static final List<String> NEGATION_WORDS = List.of(
             "no", "not", "without", "denies", "denying", "absence of",
             "resolved", "stopped", "controlled", "negative for", "rules out",
-            "no evidence of", "no signs of");
+            "rule out", "ruling out", "to rule out", "to exclude",
+            "no evidence of", "no signs of", "unlikely");
 
     // RED trigger keywords
     private static final List<String> RED_SYMPTOM_KEYWORDS = List.of(
