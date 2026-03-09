@@ -20,6 +20,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(nullable = false)
+    private String password;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
@@ -40,12 +43,13 @@ public class User {
     public User() {
     }
 
-    public User(Long id, String username, String fullName, String email, Role role,
+    public User(Long id, String username, String fullName, String email, String password, Role role,
             String department, Boolean active, LocalDateTime createdAt, LocalDateTime lastLogin) {
         this.id = id;
         this.username = username;
         this.fullName = fullName;
         this.email = email;
+        this.password = password;
         this.role = role;
         this.department = department;
         this.active = active;
@@ -74,6 +78,10 @@ public class User {
 
     public String getEmail() {
         return email;
+    }
+
+    public String getPassword() {
+        return password;
     }
 
     public Role getRole() {
@@ -112,6 +120,10 @@ public class User {
         this.email = email;
     }
 
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     public void setRole(Role role) {
         this.role = role;
     }
@@ -141,6 +153,7 @@ public class User {
         private String username;
         private String fullName;
         private String email;
+        private String password;
         private Role role;
         private String department;
         private Boolean active;
@@ -164,6 +177,11 @@ public class User {
 
         public UserBuilder email(String e) {
             this.email = e;
+            return this;
+        }
+
+        public UserBuilder password(String p) {
+            this.password = p;
             return this;
         }
 
@@ -193,7 +211,7 @@ public class User {
         }
 
         public User build() {
-            return new User(id, username, fullName, email, role, department, active, createdAt, lastLogin);
+            return new User(id, username, fullName, email, password, role, department, active, createdAt, lastLogin);
         }
     }
 }

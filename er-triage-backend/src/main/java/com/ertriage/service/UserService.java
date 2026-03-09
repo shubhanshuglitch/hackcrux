@@ -2,6 +2,7 @@ package com.ertriage.service;
 
 import com.ertriage.model.User;
 import com.ertriage.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
@@ -11,9 +12,11 @@ import java.util.Optional;
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<User> getAllUsers() {
@@ -46,6 +49,11 @@ public class UserService {
             throw new IllegalArgumentException("Username already exists: " + user.getUsername());
         if (userRepository.existsByEmail(user.getEmail()))
             throw new IllegalArgumentException("Email already exists: " + user.getEmail());
+        if (user.getPassword() == null || user.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode("password123"));
+        } else if (!user.getPassword().startsWith("$2a$")) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
         return userRepository.save(user);
     }
 

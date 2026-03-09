@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { fetchUsers, deleteUser } from '../api/userApi.js';
+import { fetchUsers, createUser, updateUser, deleteUser } from '../api/userApi.js';
 
 const ROLE_ICONS = { ADMIN: '👑', DOCTOR: '🩺', NURSE: '💉', RECEPTIONIST: '📋' };
 const ROLES = ['ALL', 'ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST'];
+const DEPARTMENTS = ['Emergency Medicine', 'Emergency Department', 'Administration', 'Front Desk', 'ICU', 'Surgery'];
+
+const emptyForm = { username: '', fullName: '', email: '', role: 'DOCTOR', department: 'Emergency Medicine', active: true };
 
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
     const [filter, setFilter] = useState('ALL');
     const [loading, setLoading] = useState(true);
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
+    const [formData, setFormData] = useState({ ...emptyForm });
+    const [formError, setFormError] = useState('');
+    const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        loadUsers();
-    }, []);
+    useEffect(() => { loadUsers(); }, []);
 
     const loadUsers = async () => {
         try {
@@ -30,9 +36,73 @@ export default function UserManagement() {
         } catch (err) { console.error('Failed to delete:', err); }
     };
 
+    const openAddForm = () => {
+        setEditingUser(null);
+        setFormData({ ...emptyForm });
+        setFormError('');
+        setShowAddForm(true);
+    };
+
+    const openEditForm = (user) => {
+        setShowAddForm(false);
+        setFormData({
+            username: user.username,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            department: user.department || 'Emergency Medicine',
+            active: user.active !== false,
+        });
+        setFormError('');
+        setEditingUser(user);
+    };
+
+    const closeForm = () => {
+        setShowAddForm(false);
+        setEditingUser(null);
+        setFormError('');
+    };
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    };
+
+    const validateForm = () => {
+        if (!formData.fullName.trim()) return 'Full name is required';
+        if (!formData.email.trim()) return 'Email is required';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Invalid email format';
+        if (!editingUser && !formData.username.trim()) return 'Username is required';
+        if (!editingUser && formData.username.length < 3) return 'Username must be at least 3 characters';
+        return '';
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const error = validateForm();
+        if (error) { setFormError(error); return; }
+
+        setSaving(true);
+        setFormError('');
+        try {
+            if (editingUser) {
+                const updated = await updateUser(editingUser.id, formData);
+                setUsers(prev => prev.map(u => u.id === editingUser.id ? updated : u));
+            } else {
+                const created = await createUser(formData);
+                setUsers(prev => [...prev, created]);
+            }
+            closeForm();
+        } catch (err) {
+            setFormError(err.message || 'Failed to save');
+        } finally { setSaving(false); }
+    };
+
     const filtered = filter === 'ALL' ? users : users.filter(u => u.role === filter);
     const doctors = users.filter(u => u.role === 'DOCTOR').length;
     const nurses = users.filter(u => u.role === 'NURSE').length;
+
+    const isFormOpen = showAddForm || editingUser;
 
     return (
         <div className="user-management">
@@ -57,14 +127,84 @@ export default function UserManagement() {
                 </div>
             </div>
 
-            <div className="user-filters">
-                {ROLES.map(role => (
-                    <button key={role} className={`filter-btn ${filter === role ? 'active' : ''}`}
-                        onClick={() => setFilter(role)}>
-                        {role === 'ALL' ? '🏥 All' : `${ROLE_ICONS[role]} ${role}`}
-                    </button>
-                ))}
+            <div className="user-toolbar">
+                <div className="user-filters">
+                    {ROLES.map(role => (
+                        <button key={role} className={`filter-btn ${filter === role ? 'active' : ''}`}
+                            onClick={() => setFilter(role)}>
+                            {role === 'ALL' ? '🏥 All' : `${ROLE_ICONS[role]} ${role}`}
+                        </button>
+                    ))}
+                </div>
+                <button className="add-staff-btn" onClick={openAddForm}>
+                    <span>➕</span> Add Staff
+                </button>
             </div>
+
+            {/* Add / Edit Form */}
+            {isFormOpen && (
+                <div className="staff-form-overlay" onClick={closeForm}>
+                    <div className="staff-form-modal" onClick={e => e.stopPropagation()}>
+                        <div className="staff-form-header">
+                            <h3>{editingUser ? '✏️ Edit Staff Member' : '➕ Add New Staff Member'}</h3>
+                            <button className="staff-form-close" onClick={closeForm}>✕</button>
+                        </div>
+                        <form onSubmit={handleSubmit} className="staff-form">
+                            {!editingUser && (
+                                <div className="form-group">
+                                    <label>Username</label>
+                                    <input type="text" name="username" value={formData.username}
+                                        onChange={handleChange} placeholder="e.g. dr.jones" autoFocus />
+                                </div>
+                            )}
+                            <div className="form-group">
+                                <label>Full Name</label>
+                                <input type="text" name="fullName" value={formData.fullName}
+                                    onChange={handleChange} placeholder="e.g. Dr. Amy Jones"
+                                    autoFocus={!!editingUser} />
+                            </div>
+                            <div className="form-group">
+                                <label>Email</label>
+                                <input type="email" name="email" value={formData.email}
+                                    onChange={handleChange} placeholder="e.g. amy.jones@hospital.com" />
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Role</label>
+                                    <select name="role" value={formData.role} onChange={handleChange}>
+                                        <option value="DOCTOR">🩺 Doctor</option>
+                                        <option value="NURSE">💉 Nurse</option>
+                                        <option value="ADMIN">👑 Admin</option>
+                                        <option value="RECEPTIONIST">📋 Receptionist</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Department</label>
+                                    <select name="department" value={formData.department} onChange={handleChange}>
+                                        {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            {editingUser && (
+                                <div className="form-group checkbox-group">
+                                    <label>
+                                        <input type="checkbox" name="active" checked={formData.active}
+                                            onChange={handleChange} />
+                                        Active
+                                    </label>
+                                </div>
+                            )}
+                            {formError && <div className="form-error">⚠️ {formError}</div>}
+                            <div className="form-actions">
+                                <button type="button" className="form-cancel-btn" onClick={closeForm}>Cancel</button>
+                                <button type="submit" className="form-submit-btn" disabled={saving}>
+                                    {saving ? 'Saving...' : (editingUser ? 'Update Staff' : 'Add Staff')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {loading ? (
                 <div className="users-empty"><div className="users-empty-icon">⏳</div>Loading staff...</div>
@@ -87,6 +227,7 @@ export default function UserManagement() {
                                 <span className="user-detail-chip">{user.active ? '🟢 Active' : '🔴 Inactive'}</span>
                             </div>
                             <div className="user-card-actions">
+                                <button className="user-edit-btn" onClick={() => openEditForm(user)}>✏️ Edit</button>
                                 <button className="user-delete-btn" onClick={() => handleDelete(user.id)}>🗑 Remove</button>
                             </div>
                         </div>

@@ -4,14 +4,29 @@ import VoiceCapture from './components/VoiceCapture.jsx';
 import KanbanBoard from './components/KanbanBoard.jsx';
 import TaskManager from './components/TaskManager.jsx';
 import UserManagement from './components/UserManagement.jsx';
+import Analytics from './components/Analytics.jsx';
+import Login from './components/Login.jsx';
+import { getStoredToken, getStoredUser, clearAuth } from './api/authApi.js';
 
 export default function App() {
+    const [user, setUser] = useState(getStoredUser);
+    const [isAuthenticated, setIsAuthenticated] = useState(!!getStoredToken());
     const [patients, setPatients] = useState([]);
     const [newPatient, setNewPatient] = useState(null);
-    const [tasks, setTasks] = useState([]);
     const [activeTab, setActiveTab] = useState('triage');
     const shellRef = useRef(null);
     const frameRef = useRef(null);
+
+    const handleLogin = (userData) => {
+        setUser(userData);
+        setIsAuthenticated(true);
+    };
+
+    const handleSignOut = () => {
+        clearAuth();
+        setUser(null);
+        setIsAuthenticated(false);
+    };
 
     const handlePatientAdded = (patient) => {
         setNewPatient(patient);
@@ -21,18 +36,6 @@ export default function App() {
     const handlePatientsChange = useCallback((updatedList) => {
         setPatients(updatedList);
     }, []);
-
-    const handleAddTask = (task) => {
-        setTasks(prev => [{ id: Date.now(), ...task, completed: false }, ...prev]);
-    };
-
-    const handleCompleteTask = (taskId) => {
-        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: true } : t));
-    };
-
-    const handleDeleteTask = (taskId) => {
-        setTasks(prev => prev.filter(t => t.id !== taskId));
-    };
 
     useEffect(() => {
         return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
@@ -51,6 +54,10 @@ export default function App() {
         });
     }, []);
 
+    if (!isAuthenticated) {
+        return <Login onLogin={handleLogin} />;
+    }
+
     return (
         <div className="app-shell" ref={shellRef} onMouseMove={handlePointerMove}>
             <div className="ambient-particles" aria-hidden="true">
@@ -60,12 +67,14 @@ export default function App() {
                 <span className="particle p4"></span>
                 <span className="particle p5"></span>
             </div>
-            <Header patients={patients} />
+            <Header patients={patients} user={user} onSignOut={handleSignOut} />
             <div className="tab-navigation">
                 <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
                     onClick={() => setActiveTab('triage')}>🏥 Patient Triage</button>
                 <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
                     onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
+                <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('analytics')}>📊 Analytics</button>
             </div>
             <main className="main-layout">
                 {activeTab === 'triage' ? (
@@ -76,18 +85,15 @@ export default function App() {
                                 <KanbanBoard newPatient={newPatient} onPatientsChange={handlePatientsChange} />
                             </div>
                             <div className="right-section">
-                                <TaskManager
-                                    tasks={tasks}
-                                    onAddTask={handleAddTask}
-                                    onCompleteTask={handleCompleteTask}
-                                    onDeleteTask={handleDeleteTask}
-                                />
+                                <TaskManager />
                             </div>
                         </div>
                     </>
-                ) : (
+                ) : activeTab === 'users' ? (
                     <UserManagement />
-                )}
+                ) : activeTab === 'analytics' ? (
+                    <Analytics />
+                ) : null}
             </main>
         </div>
     );

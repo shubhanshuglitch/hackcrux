@@ -1,6 +1,7 @@
-import React from 'react';
-import { dismissPatient } from '../api/patientApi.js';
+import React, { useState } from 'react';
+import { dismissPatient, dischargePatient, handoffPatient } from '../api/patientApi.js';
 import PatientTimeline from './PatientTimeline.jsx';
+import PatientDetailModal from './PatientDetailModal.jsx';
 
 const SLA_MS = { RED: 5 * 60 * 1000, YELLOW: 15 * 60 * 1000, GREEN: 45 * 60 * 1000 };
 
@@ -53,9 +54,31 @@ function getSlaStatus(patient, nowTs) {
 }
 
 export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Date.now() }) {
+    const [showActions, setShowActions] = useState(false);
+    const [actionType, setActionType] = useState(null); // 'discharge' or 'handoff'
+    const [actionNotes, setActionNotes] = useState('');
+    const [actionDept, setActionDept] = useState('ICU');
+    const [showDetail, setShowDetail] = useState(false);
+
     const handleDismiss = async () => {
         try { await dismissPatient(patient.id); if (onDismiss) onDismiss(patient.id); }
         catch (err) { console.error('Failed to dismiss:', err); }
+    };
+
+    const handleDischarge = async () => {
+        try {
+            await dischargePatient(patient.id, actionNotes || 'Patient discharged', 'Staff');
+            if (onDismiss) onDismiss(patient.id);
+        } catch (err) { console.error('Failed to discharge:', err); }
+    };
+
+    const handleHandoff = async () => {
+        try {
+            await handoffPatient(patient.id, actionDept, actionNotes, 'Staff');
+            setActionType(null);
+            setShowActions(false);
+            setActionNotes('');
+        } catch (err) { console.error('Failed to handoff:', err); }
     };
 
     const priorityInfo = {
@@ -71,7 +94,7 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
         <div className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}`} id={`patient-${patient.id}`}>
             <div className="card-header">
                 <div className="card-header-left">
-                    <div className="card-patient-name">{patient.name || 'Unknown Patient'}</div>
+                    <div className="card-patient-name" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }} title="Click for details">{patient.name || 'Unknown Patient'}</div>
                     <div className="card-meta-info">
                         {patient.age && <span className="card-age">Age: {patient.age}</span>}
                         <span className="card-id">ID: {patient.id}</span>
@@ -117,12 +140,58 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
 
             {patient.timeline && patient.timeline.length > 0 && <PatientTimeline events={patient.timeline} />}
 
+            {/* Discharge / Handoff Actions */}
+            <div className="card-workflow-actions">
+                {!actionType ? (
+                    <div className="workflow-btn-row">
+                        <button className="workflow-btn discharge-btn" onClick={() => setActionType('discharge')}>
+                            🏠 Discharge
+                        </button>
+                        <button className="workflow-btn handoff-btn" onClick={() => setActionType('handoff')}>
+                            🔀 Handoff
+                        </button>
+                    </div>
+                ) : actionType === 'discharge' ? (
+                    <div className="workflow-form">
+                        <div className="workflow-form-title">🏠 Discharge Patient</div>
+                        <input className="workflow-input" value={actionNotes}
+                            onChange={e => setActionNotes(e.target.value)}
+                            placeholder="Discharge notes (optional)" />
+                        <div className="workflow-form-actions">
+                            <button className="workflow-cancel" onClick={() => setActionType(null)}>Cancel</button>
+                            <button className="workflow-confirm discharge" onClick={handleDischarge}>Confirm Discharge</button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="workflow-form">
+                        <div className="workflow-form-title">🔀 Handoff Patient</div>
+                        <select className="workflow-input" value={actionDept} onChange={e => setActionDept(e.target.value)}>
+                            <option value="ICU">ICU</option>
+                            <option value="Surgery">Surgery</option>
+                            <option value="Cardiology">Cardiology</option>
+                            <option value="Radiology">Radiology</option>
+                            <option value="Neurology">Neurology</option>
+                            <option value="Pediatrics">Pediatrics</option>
+                        </select>
+                        <input className="workflow-input" value={actionNotes}
+                            onChange={e => setActionNotes(e.target.value)}
+                            placeholder="Handoff notes (optional)" />
+                        <div className="workflow-form-actions">
+                            <button className="workflow-cancel" onClick={() => setActionType(null)}>Cancel</button>
+                            <button className="workflow-confirm handoff" onClick={handleHandoff}>Confirm Handoff</button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <div className="card-footer">
                 <div className="card-timestamp"><span className="timestamp-icon">🕐</span>{formatTime(patient.timestamp)}</div>
                 <div className={`card-priority-badge priority-${patient.priority}`}>
                     <span className="badge-icon">{priorityInfo.icon}</span>{priorityInfo.label}
                 </div>
             </div>
+
+            {showDetail && <PatientDetailModal patient={patient} onClose={() => setShowDetail(false)} />}
         </div>
     );
 }

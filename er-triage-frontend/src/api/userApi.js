@@ -1,14 +1,16 @@
+import { getAuthHeaders } from './authApi.js';
+
 const API_BASE = 'http://localhost:8081/api';
 
 export async function fetchUsers(activeOnly = false) {
   const url = activeOnly ? `${API_BASE}/users?activeOnly=true` : `${API_BASE}/users`;
-  const response = await fetch(url);
+  const response = await fetch(url, { headers: { ...getAuthHeaders() } });
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
   return response.json();
 }
 
 export async function fetchUsersByRole(role) {
-  const response = await fetch(`${API_BASE}/users/role/${role}`);
+  const response = await fetch(`${API_BASE}/users/role/${role}`, { headers: { ...getAuthHeaders() } });
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
   return response.json();
 }
@@ -16,14 +18,30 @@ export async function fetchUsersByRole(role) {
 export async function createUser(userData) {
   const response = await fetch(`${API_BASE}/users`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(userData),
   });
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
   return response.json();
 }
 
+export async function updateUser(id, userData) {
+  const response = await fetch(`${API_BASE}/users/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Server error: ${response.status}`);
+  }
+  return response.json();
+}
+
 export async function deleteUser(id) {
-  const response = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+  const response = await fetch(`${API_BASE}/users/${id}`, {
+    method: 'DELETE',
+    headers: { ...getAuthHeaders() },
+  });
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
 }

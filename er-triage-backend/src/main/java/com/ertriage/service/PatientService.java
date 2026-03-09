@@ -90,10 +90,44 @@ public class PatientService {
         }).collect(Collectors.toList());
     }
 
+    public List<PatientDTO> searchPatients(String query) {
+        if (query == null || query.trim().isEmpty()) return getAllPatients();
+        List<Patient> patients = patientRepository
+                .findByNameContainingIgnoreCaseOrSymptomsContainingIgnoreCase(query.trim(), query.trim());
+        return patients.stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
     @Transactional
     public void deletePatient(Long id) {
         eventRepository.deleteByPatientId(id);
         patientRepository.deleteById(id);
+    }
+
+    @Transactional
+    public PatientDTO dischargePatient(Long id, String notes, String performedBy) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
+
+        logEvent(patient.getId(), PatientEvent.EventType.DISCHARGE,
+                notes, patient.getPriority().name(), null, performedBy);
+
+        return toDTO(patient);
+    }
+
+    @Transactional
+    public PatientDTO handoffPatient(Long id, String toDepartment, String notes, String performedBy) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
+
+        String description = "Handed off to " + toDepartment;
+        if (notes != null && !notes.isBlank()) {
+            description += ". Notes: " + notes;
+        }
+
+        logEvent(patient.getId(), PatientEvent.EventType.HANDOFF,
+                description, patient.getPriority().name(), null, performedBy);
+
+        return toDTO(patient);
     }
 
     @Transactional
