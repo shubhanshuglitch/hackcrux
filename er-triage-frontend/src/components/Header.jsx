@@ -82,13 +82,23 @@ export default function Header({ patients, user, onSignOut }) {
 
     const priorityColors = { RED: '#ef4444', YELLOW: '#f59e0b', GREEN: '#10b981' };
 
+    const HospitalMark = () => (
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+            <rect x="4" y="3" width="16" height="18" rx="3" fill="currentColor" opacity="0.16" />
+            <path d="M12 6v10M7 11h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+    );
+
     return (
         <header className="header-new">
             <div className="header-left">
                 <div className="header-logo-badge">
-                    <span className="logo-icon">🏥</span>
+                    <span className="logo-icon"><HospitalMark /></span>
                 </div>
-                <h1 className="header-title-main">ER TRIAGE SPRINT</h1>
+                <div className="header-title-wrap">
+                    <h1 className="header-title-main">ER TRIAGE SPRINT</h1>
+                    <span className="header-tag-chip">AI Care Flow</span>
+                </div>
             </div>
 
             <div className="header-center">

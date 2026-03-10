@@ -3,9 +3,9 @@ import { submitPatient } from '../api/patientApi.js';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const LANG_OPTIONS = [
-    { value: 'en-US', label: 'English (US)' },
+    { value: 'hi-IN', label: 'Hindi (India) - Hindi' },
     { value: 'en-IN', label: 'English (India)' },
-    { value: 'hi-IN', label: 'Hindi (India)' },
+    { value: 'en-US', label: 'English (US)' },
 ];
 
 export default function VoiceCapture({ onPatientAdded }) {
@@ -14,7 +14,7 @@ export default function VoiceCapture({ onPatientAdded }) {
     const [interimTranscript, setInterimTranscript] = useState('');
     const [status, setStatus] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [language, setLanguage] = useState('en-US');
+    const [language, setLanguage] = useState('hi-IN');
     const [isSupported] = useState(() => !!SpeechRecognition);
     const recognitionRef = useRef(null);
     const finalTranscriptRef = useRef('');
@@ -34,7 +34,10 @@ export default function VoiceCapture({ onPatientAdded }) {
 
         recognition.onstart = () => {
             setIsRecording(true);
-            setStatus({ type: 'info', message: 'Listening... Speak patient details clearly. Click stop when done.' });
+            const listeningMsg = language === 'hi-IN'
+                ? 'Listening in Hindi mode. Speak naturally in Hindi.'
+                : 'Listening... Speak patient details clearly. Click stop when done.';
+            setStatus({ type: 'info', message: listeningMsg });
         };
 
         recognition.onresult = (event) => {
@@ -100,11 +103,37 @@ export default function VoiceCapture({ onPatientAdded }) {
 
     const handleClear = () => { setTranscript(''); setInterimTranscript(''); finalTranscriptRef.current = ''; setStatus(null); };
 
+    const MicIcon = ({ size = 22 }) => (
+        <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+            <path d="M12 4a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0V7a3 3 0 0 0-3-3Z" fill="currentColor" />
+            <path d="M6 10.5a6 6 0 0 0 12 0M12 16.5V20M9 20h6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+    );
+
+    const StopIcon = ({ size = 22 }) => (
+        <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+            <rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" />
+        </svg>
+    );
+
+    const AnalyzeIcon = ({ size = 18 }) => (
+        <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+            <path d="M8 4h8v4h4v8h-4v4H8v-4H4V8h4V4Z" fill="currentColor" opacity="0.2" />
+            <path d="M12 7v10M7 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+    );
+
+    const ClearIcon = ({ size = 16 }) => (
+        <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+            <path d="M5 7h14M9 7V5h6v2M9 10v7M15 10v7M7 7l1 12h8l1-12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+
     return (
         <div className="voice-panel">
             <div className="voice-panel-header">
                 <div className="voice-panel-title">
-                    <span className="voice-panel-icon">🎙️</span>
+                    <span className="voice-panel-icon"><MicIcon size={24} /></span>
                     Patient Intake Assessment
                 </div>
                 <div className="voice-panel-subtitle">Record or type patient information for AI-assisted triage</div>
@@ -123,7 +152,7 @@ export default function VoiceCapture({ onPatientAdded }) {
                             </select>
                             <button id="record-btn" className={`record-btn${isRecording ? ' recording' : ''}`}
                                 onClick={handleRecordToggle} title={isRecording ? 'Stop Recording' : 'Start Recording'} disabled={isSubmitting}>
-                                {isRecording ? '⏹' : '🎤'}
+                                {isRecording ? <StopIcon size={30} /> : <MicIcon size={32} />}
                             </button>
                             <span className="record-btn-label">{isRecording ? 'Recording in progress...' : 'Click to Record'}</span>
                             {isRecording && <div className="recording-indicator">● Recording</div>}
@@ -134,12 +163,13 @@ export default function VoiceCapture({ onPatientAdded }) {
                 <div className="voice-transcript-area">
                     <label className="transcript-label" htmlFor="transcript-input">Patient Information Input</label>
                     <textarea id="transcript-input" className={`transcript-box${isRecording ? ' listening' : ''}`}
+                        lang={language}
                         value={transcript} onChange={e => setTranscript(e.target.value)}
                         placeholder='Example: "45-year-old male, severe chest pain radiating to left arm, shortness of breath. BP 170/110, heart rate 118..."' rows={6} />
                     {isRecording && interimTranscript && (<div className="interim-note">Live speech preview: {interimTranscript}</div>)}
                     {status && (
                         <div className={`status-message status-${status.type}`}>
-                            <span className="status-icon">{status.type === 'error' ? '❌' : status.type === 'success' ? '✅' : 'ℹ️'}</span>
+                            <span className="status-icon">{status.type === 'error' ? '!' : status.type === 'success' ? 'OK' : 'i'}</span>
                             {status.message}
                         </div>
                     )}
@@ -149,10 +179,10 @@ export default function VoiceCapture({ onPatientAdded }) {
                     <div className="voice-actions-title">Assessment Actions</div>
                     <button id="submit-btn" className={`submit-btn${isSubmitting ? ' loading' : ''}`}
                         onClick={handleSubmit} disabled={isSubmitting || !transcript.trim()}>
-                        {isSubmitting ? (<><div className="spinner"></div> <span>Analyzing...</span></>) : (<><span className="btn-icon">🧠</span><span>Analyze & Assign Triage</span></>)}
+                        {isSubmitting ? (<><div className="spinner"></div> <span>Analyzing...</span></>) : (<><span className="btn-icon"><AnalyzeIcon /></span><span>Analyze & Assign Triage</span></>)}
                     </button>
                     <button className="clear-btn" onClick={handleClear} disabled={isSubmitting}>
-                        <span className="btn-icon">🗑</span>Clear Input
+                        <span className="btn-icon"><ClearIcon /></span>Clear Input
                     </button>
                 </div>
             </div>

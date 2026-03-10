@@ -70,11 +70,11 @@ export default function App() {
             <Header patients={patients} user={user} onSignOut={handleSignOut} />
             <div className="tab-navigation">
                 <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('triage')}>🏥 Patient Triage</button>
+                    onClick={() => setActiveTab('triage')}>Patient Triage</button>
                 <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
+                    onClick={() => setActiveTab('users')}>Staff Directory</button>
                 <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('analytics')}>📊 Analytics</button>
+                    onClick={() => setActiveTab('analytics')}>Analytics</button>
             </div>
             <main className="main-layout">
                 {activeTab === 'triage' ? (
