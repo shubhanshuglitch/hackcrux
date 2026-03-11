@@ -97,19 +97,25 @@ export default function Header({ patients, user, onSignOut }) {
                 </div>
                 <div className="header-title-wrap">
                     <h1 className="header-title-main">ER TRIAGE SPRINT</h1>
-                    <span className="header-tag-chip">AI Care Flow</span>
+                    <span className="header-tag-chip"><span className="header-live-dot"></span>AI-Powered Triage</span>
                 </div>
             </div>
 
             <div className="header-center">
-                <div className="queue-stats">
-                    <span className="queue-total">{total} ACTIVE QUEUE</span>
-                    <span className="stat-dot critical">●</span>
-                    <span className="stat-label">{redCount} RED</span>
-                    <span className="stat-dot warning">●</span>
-                    <span className="stat-label">{amberCount} AMBER</span>
-                    <span className="stat-dot success">●</span>
-                    <span className="stat-label">{greenCount} GREEN</span>
+                <div className="queue-stats-card">
+                    <div className="queue-stat-group">
+                        <span className="queue-total">{total}</span>
+                        <span className="queue-total-label">ACTIVE QUEUE</span>
+                        <span className="stat-divider"></span>
+                    </div>
+                    <div className="queue-stats">
+                        <span className="stat-dot critical">●</span>
+                        <span className="stat-label">{redCount} RED</span>
+                        <span className="stat-dot warning">●</span>
+                        <span className="stat-label">{amberCount} AMBER</span>
+                        <span className="stat-dot success">●</span>
+                        <span className="stat-label">{greenCount} GREEN</span>
+                    </div>
                 </div>
             </div>
 

@@ -74,7 +74,10 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
         <div className="board-section">
             <div className="board-header">
                 <div>
-                    <div className="board-title">Live Triage Dashboard</div>
+                    <div className="board-title-row">
+                        <span className="board-title-icon" aria-hidden="true">🏥</span>
+                        <div className="board-title">Live Triage Dashboard</div>
+                    </div>
                     <div className="board-subtitle">Real-time patient priority queue — auto-refreshes every 4 seconds</div>
                 </div>
                 <div className="refresh-indicator">

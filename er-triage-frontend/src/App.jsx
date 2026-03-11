@@ -68,15 +68,15 @@ export default function App() {
                 <span className="particle p5"></span>
             </div>
             <Header patients={patients} user={user} onSignOut={handleSignOut} />
-            <div className="tab-navigation">
-                <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('triage')}>Patient Triage</button>
-                <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('users')}>Staff Directory</button>
-                <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('analytics')}>Analytics</button>
-            </div>
-            <main className="main-layout">
+            <main className={`main-layout ${activeTab === 'triage' ? 'triage-layout' : ''}`}>
+                <div className="tab-navigation">
+                    <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('triage')}>Patient Triage</button>
+                    <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('users')}>Staff Directory</button>
+                    <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('analytics')}>Analytics</button>
+                </div>
                 {activeTab === 'triage' ? (
                     <>
                         <VoiceCapture onPatientAdded={handlePatientAdded} />

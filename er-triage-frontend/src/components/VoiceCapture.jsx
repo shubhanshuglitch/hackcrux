@@ -19,6 +19,52 @@ export default function VoiceCapture({ onPatientAdded }) {
     const recognitionRef = useRef(null);
     const finalTranscriptRef = useRef('');
 
+    const playRecordingStartTone = async () => {
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const audioCtx = new AudioCtx();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            const now = audioCtx.currentTime;
+            const master = audioCtx.createGain();
+            const compressor = audioCtx.createDynamicsCompressor();
+            compressor.threshold.value = -28;
+            compressor.knee.value = 24;
+            compressor.ratio.value = 10;
+            compressor.attack.value = 0.003;
+            compressor.release.value = 0.18;
+
+            master.gain.setValueAtTime(0.0001, now);
+            master.gain.exponentialRampToValueAtTime(0.6, now + 0.02);
+            master.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
+
+            master.connect(compressor);
+            compressor.connect(audioCtx.destination);
+
+            const notes = [784, 1046, 1318];
+            notes.forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const start = now + i * 0.07;
+                const end = start + 0.14;
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, start);
+                gain.gain.setValueAtTime(0.0001, start);
+                gain.gain.exponentialRampToValueAtTime(0.32, start + 0.015);
+                gain.gain.exponentialRampToValueAtTime(0.0001, end);
+                osc.connect(gain);
+                gain.connect(master);
+                osc.start(start);
+                osc.stop(end + 0.02);
+            });
+
+            setTimeout(() => { audioCtx.close().catch(() => {}); }, 500);
+        } catch (_) {
+            // Keep recording flow even if browser blocks audio.
+        }
+    };
+
     useEffect(() => {
         return () => { if (recognitionRef.current) recognitionRef.current.stop(); };
     }, []);
@@ -34,10 +80,7 @@ export default function VoiceCapture({ onPatientAdded }) {
 
         recognition.onstart = () => {
             setIsRecording(true);
-            const listeningMsg = language === 'hi-IN'
-                ? 'Listening in Hindi mode. Speak naturally in Hindi.'
-                : 'Listening... Speak patient details clearly. Click stop when done.';
-            setStatus({ type: 'info', message: listeningMsg });
+            setStatus({ type: 'info', message: 'Listening... Speak patient details clearly. Click stop when done.' });
         };
 
         recognition.onresult = (event) => {
@@ -55,6 +98,11 @@ export default function VoiceCapture({ onPatientAdded }) {
         };
 
         recognition.onerror = (event) => {
+            if (event.error === 'aborted') {
+                setStatus(null);
+                setIsRecording(false);
+                return;
+            }
             setIsRecording(false);
             setInterimTranscript('');
             const errorMap = {
@@ -80,10 +128,17 @@ export default function VoiceCapture({ onPatientAdded }) {
         if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
         setIsRecording(false);
         setInterimTranscript('');
-        setStatus({ type: 'info', message: 'Recording stopped. Review transcript and click Analyze & Assign Triage.' });
+        setStatus(null);
     };
 
-    const handleRecordToggle = () => { isRecording ? stopRecording() : startRecording(); };
+    const handleRecordToggle = () => {
+        if (isRecording) {
+            stopRecording();
+        } else {
+            playRecordingStartTone();
+            startRecording();
+        }
+    };
 
     const handleSubmit = async () => {
         const text = transcript.trim();
@@ -129,62 +184,150 @@ export default function VoiceCapture({ onPatientAdded }) {
         </svg>
     );
 
+    const HistoryIcon = ({ size = 16 }) => (
+        <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+            <path d="M12 6v6l4 2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5 12a7 7 0 1 0 2.1-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5 4v3h3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+
+    const PromptIcon = ({ size = 16 }) => (
+        <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+            <path d="M4 5h16v11H8l-4 3V5Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8 9h8M8 12h5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+    );
+
     return (
-        <div className="voice-panel">
-            <div className="voice-panel-header">
-                <div className="voice-panel-title">
-                    <span className="voice-panel-icon"><MicIcon size={24} /></span>
-                    Patient Intake Assessment
+        <div className="voice-panel-premium">
+            <div className="voice-panel-header-premium">
+                <div className="voice-panel-header-content">
+                    <div className="voice-panel-icon-premium">
+                        <MicIcon size={34} />
+                    </div>
+                    <div className="voice-panel-heading-block">
+                        <h1 className="voice-panel-title-premium">Voice Intelligence for Emergency Care</h1>
+                        <p className="voice-panel-subtitle-premium">Real-time patient intake powered by clinical AI</p>
+                    </div>
                 </div>
-                <div className="voice-panel-subtitle">Record or type patient information for AI-assisted triage</div>
+                <div className="voice-panel-badge">AI-Powered</div>
             </div>
+            <div className="voice-panel-main-premium">
+                {!isSupported ? (
+                    <div className="speech-warning-premium">
+                        <span className="warning-icon">⚠️</span>
+                        <span>Web Speech API not supported. Please type patient information manually.</span>
+                    </div>
+                ) : (
+                    <>
+                        <div className="voice-panel-grid-premium">
+                            <div className="voice-record-card-premium">
+                                <div className="card-inner-premium">
+                                    <div className="record-header">
+                                        <span className="record-header-label"><MicIcon size={16} /> Voice Input</span>
+                                    </div>
 
-            <div className="voice-panel-content">
-                <div className="voice-record-area">
-                    {!isSupported ? (
-                        <div className="speech-warning"><span>⚠️</span><span>Web Speech API not supported. Please type patient information manually.</span></div>
-                    ) : (
-                        <>
-                            <label className="language-label" htmlFor="speech-language">Speech Language</label>
-                            <select id="speech-language" className="language-select" value={language}
-                                onChange={(e) => setLanguage(e.target.value)} disabled={isRecording || isSubmitting}>
-                                {LANG_OPTIONS.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
-                            </select>
-                            <button id="record-btn" className={`record-btn${isRecording ? ' recording' : ''}`}
-                                onClick={handleRecordToggle} title={isRecording ? 'Stop Recording' : 'Start Recording'} disabled={isSubmitting}>
-                                {isRecording ? <StopIcon size={30} /> : <MicIcon size={32} />}
-                            </button>
-                            <span className="record-btn-label">{isRecording ? 'Recording in progress...' : 'Click to Record'}</span>
-                            {isRecording && <div className="recording-indicator">● Recording</div>}
-                        </>
-                    )}
-                </div>
+                                    <div className="language-selector-premium">
+                                        <select
+                                            id="speech-language"
+                                            className="language-select-premium"
+                                            value={language}
+                                            onChange={(e) => setLanguage(e.target.value)}
+                                            disabled={isRecording || isSubmitting}
+                                        >
+                                            {LANG_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
 
-                <div className="voice-transcript-area">
-                    <label className="transcript-label" htmlFor="transcript-input">Patient Information Input</label>
-                    <textarea id="transcript-input" className={`transcript-box${isRecording ? ' listening' : ''}`}
-                        lang={language}
-                        value={transcript} onChange={e => setTranscript(e.target.value)}
-                        placeholder='Example: "45-year-old male, severe chest pain radiating to left arm, shortness of breath. BP 170/110, heart rate 118..."' rows={6} />
-                    {isRecording && interimTranscript && (<div className="interim-note">Live speech preview: {interimTranscript}</div>)}
-                    {status && (
-                        <div className={`status-message status-${status.type}`}>
-                            <span className="status-icon">{status.type === 'error' ? '!' : status.type === 'success' ? 'OK' : 'i'}</span>
-                            {status.message}
+                                    <div className="record-container-premium">
+                                        <button
+                                            id="record-btn"
+                                            className={`record-btn-premium${isRecording ? ' recording' : ''}`}
+                                            onClick={handleRecordToggle}
+                                            title={isRecording ? 'Stop Recording' : 'Start Recording'}
+                                            disabled={isSubmitting}
+                                        >
+                                            <div className="record-btn-inner">
+                                                {isRecording ? <StopIcon size={30} /> : <MicIcon size={34} />}
+                                            </div>
+                                            {isRecording && (
+                                                <div className="record-ripple-container">
+                                                    <div className="ripple ripple-1"></div>
+                                                    <div className="ripple ripple-2"></div>
+                                                    <div className="ripple ripple-3"></div>
+                                                </div>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    <div className="recording-pro-tip">
+                                        <span className="pro-tip-icon">💡</span>
+                                        <span className="pro-tip-text"><strong>Pro Tip:</strong> Include age, key symptoms, pain level, and duration for best AI triage accuracy.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="voice-right-column">
+                                <div className="voice-input-card-premium">
+                                    <div className="card-inner-premium">
+                                        <div className="input-header">
+                                            <span className="input-header-label"><PromptIcon size={16} /> Patient Information</span>
+                                        </div>
+
+                                        <textarea id="transcript-input" className={`transcript-box-premium${isRecording ? ' listening' : ''}`}
+                                            lang={language}
+                                            value={transcript} onChange={e => setTranscript(e.target.value)}
+                                            placeholder='Record or type patient details...' rows={7}
+                                        />
+
+                                        {isRecording && interimTranscript && (
+                                            <div className="interim-note-premium">
+                                                <span className="interim-icon">✨</span>
+                                                <span>{interimTranscript}</span>
+                                            </div>
+                                        )}
+
+                                        {status && (
+                                            <div className={`status-message-premium status-${status.type}`}>
+                                                <span className={`status-icon-premium status-${status.type}-icon`}>
+                                                    {status.type === 'error' ? '✕' : status.type === 'success' ? '✓' : 'ℹ'}
+                                                </span>
+                                                <span className="status-text">{status.message}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="input-actions-row">
+                                            <button id="submit-btn" className={`submit-btn-premium compact${isSubmitting ? ' loading' : ''}`}
+                                                onClick={handleSubmit} disabled={isSubmitting || !transcript.trim()}>
+                                                <div className="submit-btn-content">
+                                                    {isSubmitting ? (
+                                                        <>
+                                                            <div className="spinner-premium"></div>
+                                                            <span>Analyzing...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span className="btn-icon-premium"><AnalyzeIcon size={16} /></span>
+                                                            <span>Analyze & Triage</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </button>
+
+                                            <button className="clear-btn-premium compact" onClick={handleClear} disabled={isSubmitting}>
+                                                <span className="btn-icon-premium"><ClearIcon size={14} /></span>
+                                                <span>CLEAR</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    )}
-                </div>
-
-                <div className="voice-actions">
-                    <div className="voice-actions-title">Assessment Actions</div>
-                    <button id="submit-btn" className={`submit-btn${isSubmitting ? ' loading' : ''}`}
-                        onClick={handleSubmit} disabled={isSubmitting || !transcript.trim()}>
-                        {isSubmitting ? (<><div className="spinner"></div> <span>Analyzing...</span></>) : (<><span className="btn-icon"><AnalyzeIcon /></span><span>Analyze & Assign Triage</span></>)}
-                    </button>
-                    <button className="clear-btn" onClick={handleClear} disabled={isSubmitting}>
-                        <span className="btn-icon"><ClearIcon /></span>Clear Input
-                    </button>
-                </div>
+                    </>
+                )}
             </div>
         </div>
     );
