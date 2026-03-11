@@ -53,15 +53,15 @@ function getSlaStatus(patient, nowTs) {
     };
 }
 
-export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Date.now() }) {
+// ── NEW: accept onDragStart and onDragEnd props from KanbanBoard ─────────────
+export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Date.now(), onDragStart, onDragEnd }) {
+// ────────────────────────────────────────────────────────────────────────────
     const [showActions, setShowActions] = useState(false);
-    const [actionType, setActionType] = useState(null); // 'discharge' or 'handoff'
+    const [actionType, setActionType] = useState(null);
     const [actionNotes, setActionNotes] = useState('');
     const [actionDept, setActionDept] = useState('ICU');
     const [showDetail, setShowDetail] = useState(false);
-    // ── NEW: collapse state (default expanded) ───────────────────────────────
     const [collapsed, setCollapsed] = useState(false);
-    // ────────────────────────────────────────────────────────────────────────
 
     const handleDismiss = async () => {
         try { await dismissPatient(patient.id); if (onDismiss) onDismiss(patient.id); }
@@ -94,9 +94,22 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
     const confidencePct = Math.round(explanation.confidence * 100);
 
     return (
-        <div className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}`} id={`patient-${patient.id}`}>
-
-            {/* HEADER — unchanged, except collapse button inserted before retriage */}
+        <div
+            className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}`}
+            id={`patient-${patient.id}`}
+            // ── NEW: make the card draggable ──────────────────────────────────
+            draggable="true"
+            onDragStart={(e) => {
+                // Store id in dataTransfer as a fallback (good practice)
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', patient.id);
+                if (onDragStart) onDragStart(patient.id);
+            }}
+            onDragEnd={() => {
+                if (onDragEnd) onDragEnd();
+            }}
+            // ─────────────────────────────────────────────────────────────────
+        >
             <div className="card-header">
                 <div className="card-header-left">
                     <div className="card-patient-name" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }} title="Click for details">{patient.name || 'Unknown Patient'}</div>
@@ -106,7 +119,6 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
                     </div>
                 </div>
                 <div className="card-header-actions">
-                    {/* ── NEW: collapse/expand toggle — same className as card-retriage, placed before it ── */}
                     <button
                         className="card-retriage"
                         onClick={() => setCollapsed(c => !c)}
@@ -114,13 +126,11 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
                     >
                         {collapsed ? '⬇️' : '⬆️'}
                     </button>
-                    {/* ── end new ── */}
                     {onRetriage && <button className="card-retriage" onClick={() => onRetriage(patient)} title="Re-triage">🔄</button>}
                     <button className="card-dismiss" onClick={handleDismiss} title="Dismiss" id={`dismiss-${patient.id}`}>✕</button>
                 </div>
             </div>
 
-            {/* ── COLLAPSED STATE: chief complaint + timestamp only ── */}
             {collapsed && (
                 <>
                     {patient.symptoms && (
@@ -140,7 +150,6 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
                 </>
             )}
 
-            {/* ── EXPANDED STATE: all original content, completely unchanged ── */}
             {!collapsed && (
                 <>
                     <div className={`sla-chip${sla.breach ? ' breached' : sla.warning ? ' warning' : ''}`}>
