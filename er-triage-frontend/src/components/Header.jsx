@@ -84,8 +84,15 @@ export default function Header({ patients, user, onSignOut }) {
 
     const HospitalMark = () => (
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
-            <rect x="4" y="3" width="16" height="18" rx="3" fill="currentColor" opacity="0.16" />
-            <path d="M12 6v10M7 11h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <defs>
+                <linearGradient id="hospital-mark-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#d8f3f6" />
+                    <stop offset="100%" stopColor="#a8dbe2" />
+                </linearGradient>
+            </defs>
+            <rect x="3" y="2.6" width="18" height="18.8" rx="5" fill="url(#hospital-mark-grad)" opacity="0.32" />
+            <path d="M12 5.8v10.6M6.7 11.1h10.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path d="M5.2 7.1a7.6 7.6 0 0 0 0 9.8M18.8 7.1a7.6 7.6 0 0 1 0 9.8" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.8" />
         </svg>
     );
 
@@ -97,7 +104,7 @@ export default function Header({ patients, user, onSignOut }) {
                 </div>
                 <div className="header-title-wrap">
                     <h1 className="header-title-main">ER TRIAGE SPRINT</h1>
-                    <span className="header-tag-chip"><span className="header-live-dot"></span>AI-Powered Triage</span>
+                    <span className="header-tag-chip"><span className="header-live-dot"></span>Clinical Command Center</span>
                 </div>
             </div>
 

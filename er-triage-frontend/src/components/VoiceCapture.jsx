@@ -80,7 +80,7 @@ export default function VoiceCapture({ onPatientAdded }) {
 
         recognition.onstart = () => {
             setIsRecording(true);
-            setStatus({ type: 'info', message: 'Listening... Speak patient details clearly. Click stop when done.' });
+            setStatus(null);
         };
 
         recognition.onresult = (event) => {
@@ -199,6 +199,28 @@ export default function VoiceCapture({ onPatientAdded }) {
         </svg>
     );
 
+    const StepListenIcon = ({ size = 34 }) => (
+        <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+            <path d="M12 3.8a2.8 2.8 0 0 0-2.8 2.8v5.3a2.8 2.8 0 0 0 5.6 0V6.6A2.8 2.8 0 0 0 12 3.8Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M6.2 11.2a5.8 5.8 0 0 0 11.6 0M12 17v2.8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M4.8 8.4a8.7 8.7 0 0 0 0 7.2M19.2 8.4a8.7 8.7 0 0 1 0 7.2" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.75" />
+        </svg>
+    );
+
+    const StepExtractIcon = ({ size = 34 }) => (
+        <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+            <path d="M7.5 3.8h7.2l3.1 3.2v12.1a1.7 1.7 0 0 1-1.7 1.7H7.5a1.7 1.7 0 0 1-1.7-1.7V5.5a1.7 1.7 0 0 1 1.7-1.7Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+            <path d="M14.7 3.8V7h3.1M9 10h6M9 13h6M9 16h3.8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+
+    const StepScoreIcon = ({ size = 34 }) => (
+        <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+            <path d="M12 3.8 5.8 6.2v4.9c0 4 2.4 7.7 6.2 9.1 3.8-1.4 6.2-5.1 6.2-9.1V6.2L12 3.8Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+            <path d="m9.1 12.3 1.9 1.9 4-4.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+
     return (
         <div className="voice-panel-premium">
             <div className="voice-panel-header-premium">
@@ -211,7 +233,7 @@ export default function VoiceCapture({ onPatientAdded }) {
                         <p className="voice-panel-subtitle-premium">Real-time patient intake powered by clinical AI</p>
                     </div>
                 </div>
-                <div className="voice-panel-badge">AI-Powered</div>
+                <div className="voice-panel-badge"></div>
             </div>
             <div className="voice-panel-main-premium">
                 {!isSupported ? (
@@ -324,6 +346,26 @@ export default function VoiceCapture({ onPatientAdded }) {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="assessment-steps-strip">
+                            <div className="assessment-steps-grid">
+                                <article className="assessment-step-card step-one">
+                                    <h4>Listen and record</h4>
+                                    <div className="assessment-step-icon"><StepListenIcon /></div>
+                                    <p>Capture spoken patient details clearly from staff or attendants.</p>
+                                </article>
+                                <article className="assessment-step-card step-two">
+                                    <h4>Extract symptoms</h4>
+                                    <div className="assessment-step-icon"><StepExtractIcon /></div>
+                                    <p>Convert raw speech into structured symptoms, vitals, and history.</p>
+                                </article>
+                                <article className="assessment-step-card step-three">
+                                    <h4>Set triage priority</h4>
+                                    <div className="assessment-step-icon"><StepScoreIcon /></div>
+                                    <p>Generate fast urgency guidance for immediate emergency action.</p>
+                                </article>
                             </div>
                         </div>
                     </>

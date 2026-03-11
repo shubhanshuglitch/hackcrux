@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { fetchUsers, createUser, updateUser, deleteUser } from '../api/userApi.js';
 
 const ROLE_ICONS = { ADMIN: '👑', DOCTOR: '🩺', NURSE: '💉', RECEPTIONIST: '📋' };
@@ -11,28 +12,32 @@ export default function UserManagement() {
     const [users, setUsers] = useState([]);
     const [filter, setFilter] = useState('ALL');
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
     const [showAddForm, setShowAddForm] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [formData, setFormData] = useState({ ...emptyForm });
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
+    const [deleteCandidate, setDeleteCandidate] = useState(null);
 
     useEffect(() => { loadUsers(); }, []);
 
     const loadUsers = async () => {
+        setLoadError('');
         try {
             const data = await fetchUsers();
             setUsers(data);
         } catch (err) {
             console.error('Failed to load users:', err);
+            setLoadError('Failed to load staff directory. Please refresh.');
         } finally { setLoading(false); }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm('Remove this staff member?')) return;
         try {
             await deleteUser(id);
             setUsers(prev => prev.filter(u => u.id !== id));
+            setDeleteCandidate(null);
         } catch (err) { console.error('Failed to delete:', err); }
     };
 
@@ -103,6 +108,7 @@ export default function UserManagement() {
     const nurses = users.filter(u => u.role === 'NURSE').length;
 
     const isFormOpen = showAddForm || editingUser;
+    const portalTarget = typeof document !== 'undefined' ? document.body : null;
 
     return (
         <div className="user-management">
@@ -142,7 +148,7 @@ export default function UserManagement() {
             </div>
 
             {/* Add / Edit Form */}
-            {isFormOpen && (
+            {isFormOpen && portalTarget && createPortal(
                 <div className="staff-form-overlay" onClick={closeForm}>
                     <div className="staff-form-modal" onClick={e => e.stopPropagation()}>
                         <div className="staff-form-header">
@@ -203,11 +209,14 @@ export default function UserManagement() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                portalTarget,
             )}
 
             {loading ? (
                 <div className="users-empty"><div className="users-empty-icon">⏳</div>Loading staff...</div>
+            ) : loadError ? (
+                <div className="users-empty"><div className="users-empty-icon">⚠️</div>{loadError}</div>
             ) : filtered.length === 0 ? (
                 <div className="users-empty"><div className="users-empty-icon">👤</div>No staff members found</div>
             ) : (
@@ -228,11 +237,33 @@ export default function UserManagement() {
                             </div>
                             <div className="user-card-actions">
                                 <button className="user-edit-btn" onClick={() => openEditForm(user)}>✏️ Edit</button>
-                                <button className="user-delete-btn" onClick={() => handleDelete(user.id)}>🗑 Remove</button>
+                                <button className="user-delete-btn" onClick={() => setDeleteCandidate(user)}>🗑 Remove</button>
                             </div>
                         </div>
                     ))}
                 </div>
+            )}
+
+            {deleteCandidate && portalTarget && createPortal(
+                <div className="staff-form-overlay" onClick={() => setDeleteCandidate(null)}>
+                    <div className="delete-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="staff-form-header delete-header">
+                            <h3>Confirm Staff Removal</h3>
+                            <button className="staff-form-close" onClick={() => setDeleteCandidate(null)}>✕</button>
+                        </div>
+                        <div className="delete-confirm-body">
+                            <p>
+                                Remove <strong>{deleteCandidate.fullName}</strong> from Staff Directory?
+                            </p>
+                            <p className="delete-note">This action cannot be undone.</p>
+                        </div>
+                        <div className="delete-confirm-actions">
+                            <button className="form-cancel-btn" onClick={() => setDeleteCandidate(null)}>Cancel</button>
+                            <button className="user-delete-btn danger" onClick={() => handleDelete(deleteCandidate.id)}>Remove</button>
+                        </div>
+                    </div>
+                </div>,
+                portalTarget,
             )}
         </div>
     );

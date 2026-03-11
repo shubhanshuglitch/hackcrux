@@ -25,7 +25,7 @@ const COLUMNS = [
 
 export default function KanbanBoard({ newPatient, onPatientsChange }) {
     const [patients, setPatients] = useState([]);
-    const [lastUpdated, setLastUpdated] = useState(null);
+    const [lastUpdated, setLastUpdated] = useState(new Date());
     const [nowTs, setNowTs] = useState(Date.now());
     const [retriageModal, setReTriageModal] = useState(null);
 
@@ -66,7 +66,7 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
     };
 
     const formatUpdated = () => {
-        if (!lastUpdated) return 'Loading...';
+        if (!lastUpdated) return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         return lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     };
 
@@ -81,8 +81,11 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                     <div className="board-subtitle">Real-time patient priority queue — auto-refreshes every 4 seconds</div>
                 </div>
                 <div className="refresh-indicator">
-                    <div className="refresh-dot"></div>
-                    Last updated: {formatUpdated()}
+                    <span className="refresh-icon" aria-hidden="true">⏱</span>
+                    <span className="refresh-status-text">
+                        <strong>Last updated:</strong>
+                        <span className="refresh-time">{formatUpdated()}</span>
+                    </span>
                 </div>
             </div>
 

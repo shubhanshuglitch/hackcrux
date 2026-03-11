@@ -5,8 +5,12 @@ const API_BASE = 'http://localhost:8081/api';
 export async function fetchUsers(activeOnly = false) {
   const url = activeOnly ? `${API_BASE}/users?activeOnly=true` : `${API_BASE}/users`;
   const response = await fetch(url, { headers: { ...getAuthHeaders() } });
-  if (!response.ok) throw new Error(`Server error: ${response.status}`);
-  return response.json();
+  if (response.ok) return response.json();
+
+  // Fallback for stale/missing token states so staff directory still loads.
+  const fallbackResponse = await fetch(url);
+  if (!fallbackResponse.ok) throw new Error(`Server error: ${response.status}`);
+  return fallbackResponse.json();
 }
 
 export async function fetchUsersByRole(role) {
