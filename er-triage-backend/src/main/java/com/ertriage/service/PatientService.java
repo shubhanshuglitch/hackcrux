@@ -7,8 +7,8 @@ import com.ertriage.model.PatientEvent;
 import com.ertriage.repository.PatientEventRepository;
 import com.ertriage.repository.PatientRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,7 +33,6 @@ public class PatientService {
         this.eventRepository = eventRepository;
     }
 
-    @Transactional
     public PatientDTO processAndSavePatient(String rawInput) {
         Map<String, Object> extractedData = geminiService.extractPatientData(rawInput);
 
@@ -62,7 +61,8 @@ public class PatientService {
 
         Patient patient = Patient.builder()
                 .name(extractedName).age(age).symptoms(symptoms)
-                .vitals(vitals).priority(priority).rawInput(rawInput).build();
+                .vitals(vitals).priority(priority).rawInput(rawInput)
+                .timestamp(LocalDateTime.now()).build();
 
         Patient saved = patientRepository.save(patient);
 
@@ -75,10 +75,10 @@ public class PatientService {
 
     public List<PatientDTO> getAllPatients() {
         List<Patient> patients = patientRepository.findAllByOrderByPriorityAscTimestampAsc();
-        List<Long> patientIds = patients.stream().map(Patient::getId).collect(Collectors.toList());
+        List<String> patientIds = patients.stream().map(Patient::getId).collect(Collectors.toList());
 
         List<PatientEvent> allEvents = eventRepository.findByPatientIdInOrderByTimestampAsc(patientIds);
-        Map<Long, List<PatientEventDTO>> eventsByPatient = allEvents.stream()
+        Map<String, List<PatientEventDTO>> eventsByPatient = allEvents.stream()
                 .collect(Collectors.groupingBy(
                         PatientEvent::getPatientId,
                         Collectors.mapping(this::toEventDTO, Collectors.toList())));
@@ -97,14 +97,12 @@ public class PatientService {
         return patients.stream().map(this::toDTO).collect(Collectors.toList());
     }
 
-    @Transactional
-    public void deletePatient(Long id) {
+    public void deletePatient(String id) {
         eventRepository.deleteByPatientId(id);
         patientRepository.deleteById(id);
     }
 
-    @Transactional
-    public PatientDTO dischargePatient(Long id, String notes, String performedBy) {
+    public PatientDTO dischargePatient(String id, String notes, String performedBy) {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
 
@@ -114,8 +112,7 @@ public class PatientService {
         return toDTO(patient);
     }
 
-    @Transactional
-    public PatientDTO handoffPatient(Long id, String toDepartment, String notes, String performedBy) {
+    public PatientDTO handoffPatient(String id, String toDepartment, String notes, String performedBy) {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
 
@@ -130,8 +127,7 @@ public class PatientService {
         return toDTO(patient);
     }
 
-    @Transactional
-    public PatientDTO retriagePatient(Long id, String updatedSymptoms, String updatedVitals) {
+    public PatientDTO retriagePatient(String id, String updatedSymptoms, String updatedVitals) {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
 
@@ -179,7 +175,7 @@ public class PatientService {
         return toDTO(saved);
     }
 
-    private void logEvent(Long patientId, PatientEvent.EventType type,
+    private void logEvent(String patientId, PatientEvent.EventType type,
             String description, String oldPriority, String newPriority, String performedBy) {
         eventRepository.save(new PatientEvent(patientId, type, description, oldPriority, newPriority, performedBy));
     }
