@@ -77,17 +77,22 @@ public class PatientController {
     }
 
     // ── NEW: update a patient's triage priority via drag-and-drop ────────────
-    @PutMapping("/{id}/priority")
-    public ResponseEntity<PatientDTO> updatePriority(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        try {
-            String priority = body.get("priority");
-            if (priority == null || priority.trim().isEmpty())
-                return ResponseEntity.badRequest().build();
-            return ResponseEntity.ok(patientService.updatePriority(id, priority.trim().toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+    // ✅ Fix — match the service return type
+@PutMapping("/{id}/priority")
+public ResponseEntity<PatientDTO> updatePriority(@PathVariable String id, @RequestBody Map<String, String> body) {
+    try {
+        String priority = body.get("priority");
+        if (priority == null || priority.trim().isEmpty())
+            return ResponseEntity.badRequest().build();
+
+        return ResponseEntity.ok(
+            patientService.updatePriority(id, priority.trim().toUpperCase())
+        );
+
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.notFound().build();
     }
+}
     // ────────────────────────────────────────────────────────────────────────
 
     @GetMapping("/export/csv")

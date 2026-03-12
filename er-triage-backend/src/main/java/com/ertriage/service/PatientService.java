@@ -217,4 +217,20 @@ public class PatientService {
         }
         return alphaTokens >= 1;
     }
+
+    // ✅ Fix — replace the entire method with this
+public PatientDTO updatePriority(String id, String priority) {
+    Patient patient = patientRepository.findById(id)
+        .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
+
+    String oldPriority = patient.getPriority() != null ? patient.getPriority().name() : "GREEN";
+    patient.setPriority(Patient.Priority.valueOf(priority));
+    Patient saved = patientRepository.save(patient);
+
+    logEvent(saved.getId(), PatientEvent.EventType.PRIORITY_CHANGE,
+        "Priority changed via drag-and-drop from " + oldPriority + " to " + priority,
+        oldPriority, priority, "Staff");
+
+    return toDTO(saved);
+}
 }

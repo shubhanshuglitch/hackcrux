@@ -92,10 +92,6 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
         return () => clearInterval(interval);
     }, [loadPatients]);
 
-    useEffect(() => {
-        const clock = setInterval(() => setNowTs(Date.now()), 1000);
-        return () => clearInterval(clock);
-    }, []);
 
     useEffect(() => {
         if (newPatient) {
@@ -201,7 +197,10 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
 
             <div className="kanban-grid">
                 {COLUMNS.map(col => {
-                    const colPatients = patients.filter(p => p.priority === col.key);
+                    const colPatients = React.useMemo(
+    () => patients.filter(p => p.priority === col.key),
+    [patients, col.key]
+);
                     return (
                         <div
                             key={col.key}
@@ -230,7 +229,6 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                                         <PatientCard
                                             key={patient.id}
                                             patient={patient}
-                                            nowTs={nowTs}
                                             onDismiss={handleDismiss}
                                             onRetriage={handleRetriage}
                                             onDragStart={handleDragStart}

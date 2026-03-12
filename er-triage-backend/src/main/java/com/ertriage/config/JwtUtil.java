@@ -10,15 +10,19 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+
+
 @Component
+
 public class JwtUtil {
 
     private final SecretKey key;
     private final long expirationMs = 86400000; // 24 hours
 
     public JwtUtil(@Value("${jwt.secret:ErTriageSecretKeyMustBeAtLeast32BytesLong123}") String secret) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-    }
+    System.out.println("JWT SECRET LOADED: " + secret.substring(0, 8) + "...");  // add this
+    this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+}
 
     public String generateToken(String username, String role) {
         return Jwts.builder()
@@ -50,4 +54,6 @@ public class JwtUtil {
             return false;
         }
     }
+
+    
 }
