@@ -179,6 +179,35 @@ public class PatientService {
         return toDTO(saved);
     }
 
+    // ── NEW: manually update a patient's priority (used by drag-and-drop) ───
+    @Transactional
+    public PatientDTO updatePriority(Long id, String newPriorityStr) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
+
+        Patient.Priority newPriority;
+        try {
+            newPriority = Patient.Priority.valueOf(newPriorityStr);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid priority value: " + newPriorityStr);
+        }
+
+        String oldPriority = patient.getPriority() != null ? patient.getPriority().name() : "GREEN";
+
+        // Only update and log if the priority actually changed
+        if (!oldPriority.equals(newPriority.name())) {
+            patient.setPriority(newPriority);
+            patientRepository.save(patient);
+
+            logEvent(patient.getId(), PatientEvent.EventType.PRIORITY_CHANGE,
+                    "Priority manually changed from " + oldPriority + " to " + newPriority.name() + " via drag-and-drop.",
+                    oldPriority, newPriority.name(), "Triage Staff");
+        }
+
+        return toDTO(patient);
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     private void logEvent(Long patientId, PatientEvent.EventType type,
             String description, String oldPriority, String newPriority, String performedBy) {
         eventRepository.save(new PatientEvent(patientId, type, description, oldPriority, newPriority, performedBy));

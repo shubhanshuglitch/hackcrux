@@ -31,26 +31,21 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
     const [dragOverCol, setDragOverCol] = useState(null);
 
     const dragPatientId = useRef(null);
-    // ── NEW: track in-flight priority updates so the poll doesn't overwrite them
-    // Map of { [patientId]: newPriority } for moves not yet confirmed by server
+    // Tracks priority overrides that have been dropped but not yet confirmed
+    // by the server. Prevents the 4-second poll from snapping the card back
+    // while the PUT /priority request is still in flight.
     const pendingPriorityRef = useRef({});
-    // ────────────────────────────────────────────────────────────────────────
 
     const loadPatients = useCallback(async () => {
         try {
             const data = await fetchPatients();
-
-            // ── NEW: re-apply any pending local priority overrides so a poll
-            // arriving before the server has saved the move doesn't snap the
-            // card back to the old column ────────────────────────────────────
-            const merged = data.map(p => {
-                if (pendingPriorityRef.current[p.id] !== undefined) {
-                    return { ...p, priority: pendingPriorityRef.current[p.id] };
-                }
-                return p;
-            });
-            // ────────────────────────────────────────────────────────────────
-
+            // Re-apply any pending local overrides so a poll arriving before
+            // the server has saved the move doesn't revert the card.
+            const merged = data.map(p =>
+                pendingPriorityRef.current[p.id] !== undefined
+                    ? { ...p, priority: pendingPriorityRef.current[p.id] }
+                    : p
+            );
             setPatients(merged);
             setLastUpdated(new Date());
             if (onPatientsChange) onPatientsChange(merged);
@@ -109,33 +104,36 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
         if (!id) return;
         dragPatientId.current = null;
 
-        // Find the patient's current priority — skip if dropped onto same column
-        const patient = patients.find(p => p.id === id);
-        if (!patient || patient.priority === colKey) return;
+        // Find current patient — skip if already in this column
+        setPatients(prev => {
+            const patient = prev.find(p => p.id === id);
+            if (!patient || patient.priority === colKey) return prev;
 
-        // 1. Update local state immediately so the card moves visually at once
-        setPatients(prev => prev.map(p =>
-            p.id === id ? { ...p, priority: colKey } : p
-        ));
+            const oldPriority = patient.priority;
 
-        // 2. Record this as a pending override so the next poll doesn't revert it
-        pendingPriorityRef.current[id] = colKey;
+            // 1. Move card immediately in local state
+            const updated = prev.map(p => p.id === id ? { ...p, priority: colKey } : p);
 
-        // 3. Persist to server
-        try {
-            await updatePatientPriority(id, colKey);
-        } catch (err) {
-            console.error('Failed to update priority on server:', err);
-            // Roll back the local move if the server call failed
-            setPatients(prev => prev.map(p =>
-                p.id === id ? { ...p, priority: patient.priority } : p
-            ));
-        } finally {
-            // 4. Once the server has saved it (or we've rolled back), remove the
-            //    pending override — future polls will read the correct value
-            delete pendingPriorityRef.current[id];
-        }
-    }, [patients]);
+            // 2. Record pending override to survive the next poll
+            pendingPriorityRef.current[id] = colKey;
+
+            // 3. Persist to server asynchronously
+            updatePatientPriority(id, colKey)
+                .catch((err) => {
+                    console.error('Failed to update priority on server:', err);
+                    // Roll back on failure
+                    setPatients(prev2 => prev2.map(p =>
+                        p.id === id ? { ...p, priority: oldPriority } : p
+                    ));
+                })
+                .finally(() => {
+                    // Remove pending override — future polls now read from server
+                    delete pendingPriorityRef.current[id];
+                });
+
+            return updated;
+        });
+    }, []);
 
     const handleDragEnd = useCallback(() => {
         setDragOverCol(null);
@@ -169,7 +167,7 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
 
             <div className="kanban-grid">
                 {COLUMNS.map(col => {
-                    // colPatients is derived directly from state — count badge is always correct
+                    // Derived directly from state — badge count always stays correct
                     const colPatients = patients.filter(p => p.priority === col.key);
                     return (
                         <div
@@ -186,7 +184,6 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                                     <div className={`col-title ${col.titleClass}`}>{col.title}</div>
                                     <div className="col-desc">{col.desc}</div>
                                 </div>
-                                {/* Badge count is always derived from filtered state — updates automatically */}
                                 <div className={`col-badge ${col.badgeClass}`}>{colPatients.length}</div>
                             </div>
                             <div className="col-body">
@@ -221,4 +218,4 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
             )}
         </div>
     );
-}0
+}
