@@ -3,6 +3,10 @@ import { dismissPatient, dischargePatient, handoffPatient } from '../api/patient
 import PatientTimeline from './PatientTimeline.jsx';
 import PatientDetailModal from './PatientDetailModal.jsx';
 
+import heartRateIcon from '../assets/heart-rate.png';
+import retriageIcon from '../assets/arrow-counterclockwise-12-filled_.png';
+import collapseIcon from '../assets/arrow-bottom_.png';
+
 const SLA_MS = { RED: 5 * 60 * 1000, YELLOW: 15 * 60 * 1000, GREEN: 45 * 60 * 1000 };
 
 function formatTime(timestamp) {
@@ -53,12 +57,15 @@ function getSlaStatus(patient, nowTs) {
     };
 }
 
-export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Date.now() }) {
+// ── collapsed and onToggleCollapse are now controlled by KanbanBoard ─────────
+export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Date.now(), onDragStart, onDragEnd, collapsed, onToggleCollapse }) {
+// ────────────────────────────────────────────────────────────────────────────
     const [showActions, setShowActions] = useState(false);
-    const [actionType, setActionType] = useState(null); // 'discharge' or 'handoff'
+    const [actionType, setActionType] = useState(null);
     const [actionNotes, setActionNotes] = useState('');
     const [actionDept, setActionDept] = useState('ICU');
     const [showDetail, setShowDetail] = useState(false);
+    // NOTE: `collapsed` is no longer local state — it comes from props
 
     const handleDismiss = async () => {
         try { await dismissPatient(patient.id); if (onDismiss) onDismiss(patient.id); }
@@ -91,7 +98,17 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
     const confidencePct = Math.round(explanation.confidence * 100);
 
     return (
-        <div className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}`} id={`patient-${patient.id}`}>
+        <div
+            className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}`}
+            id={`patient-${patient.id}`}
+            draggable="true"
+            onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', patient.id);
+                if (onDragStart) onDragStart(patient.id);
+            }}
+            onDragEnd={() => { if (onDragEnd) onDragEnd(); }}
+        >
             <div className="card-header">
                 <div className="card-header-left">
                     <div className="card-patient-name" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }} title="Click for details">{patient.name || 'Unknown Patient'}</div>
@@ -101,107 +118,154 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
                     </div>
                 </div>
                 <div className="card-header-actions">
-                    {onRetriage && <button className="card-retriage" onClick={() => onRetriage(patient)} title="Re-triage">🔄</button>}
+                    <button
+                        className="card-retriage"
+                        onClick={() => onToggleCollapse(patient.id)}
+                        title={collapsed ? 'Expand card' : 'Collapse card'}
+                    >
+                        <img
+                            src={collapseIcon}
+                            alt={collapsed ? 'Expand' : 'Collapse'}
+                            style={{
+                                width: '1em',
+                                height: '1em',
+                                display: 'block',
+                                // arrow-bottom_.png points down by default:
+                                // collapsed → point down (no rotation) = "click to expand"
+                                // expanded  → point up (rotate 180°)   = "click to collapse"
+                                transform: collapsed ? 'none' : 'rotate(180deg)',
+                                transition: 'transform 0.2s ease',
+                            }}
+                        />
+                    </button>
+                    {onRetriage && (
+                        <button className="card-retriage" onClick={() => onRetriage(patient)} title="Re-triage">
+                            <img
+                                src={retriageIcon}
+                                alt="Re-triage"
+                                style={{ width: '1em', height: '1em', display: 'block' }}
+                            />
+                        </button>
+                    )}
                     <button className="card-dismiss" onClick={handleDismiss} title="Dismiss" id={`dismiss-${patient.id}`}>✕</button>
                 </div>
             </div>
 
-            <div className={`sla-chip${sla.breach ? ' breached' : sla.warning ? ' warning' : ''}`}>
-                <span className="sla-dot"></span><span className="sla-label">SLA</span><span className="sla-time">{sla.label}</span>
-            </div>
-
-            <div className="card-divider"></div>
-
-            {patient.symptoms && (
-                <div className="card-field">
-                    <div className="card-field-header"><span className="card-field-icon">🩺</span><div className="card-field-label">Chief Complaint</div></div>
-                    <div className="card-field-value">{patient.symptoms}</div>
-                </div>
+            {collapsed && (
+                <>
+                    {patient.symptoms && (
+                        <div className="card-field">
+                            <div className="card-field-header">
+                                <span className="card-field-icon">🩺</span>
+                                <div className="card-field-label">Chief Complaint</div>
+                            </div>
+                            <div className="card-field-value">{patient.symptoms}</div>
+                        </div>
+                    )}
+                    <div className="card-footer">
+                        <div className="card-timestamp">
+                            <span className="timestamp-icon">🕐</span>{formatTime(patient.timestamp)}
+                        </div>
+                    </div>
+                </>
             )}
 
-            {patient.vitals && patient.vitals !== 'Not recorded' && (
-                <div className="card-field">
-                    <div className="card-field-header"><span className="card-field-icon">❤️</span><div className="card-field-label">Vitals</div></div>
-                    <div className="card-field-value vitals-display">{patient.vitals}</div>
-                </div>
-            )}
+            {!collapsed && (
+                <>
+                    <div className={`sla-chip${sla.breach ? ' breached' : sla.warning ? ' warning' : ''}`}>
+                        <span className="sla-dot"></span><span className="sla-label">SLA</span><span className="sla-time">{sla.label}</span>
+                    </div>
 
-            {(patient.assignedDoctorName || patient.assignedDoctorSpecialization) && (
-                <div className="card-field assigned-doctor-field">
-                    <div className="card-field-header"><span className="card-field-icon">👨‍⚕️</span><div className="card-field-label">Assigned Doctor</div></div>
-                    <div className="card-field-value">
-                        <span className="assigned-doctor-name">{patient.assignedDoctorName || 'Unassigned'}</span>
-                        {patient.assignedDoctorSpecialization && (
-                            <span className="assigned-doctor-spec"> ({patient.assignedDoctorSpecialization})</span>
+                    <div className="card-divider"></div>
+
+                    {patient.symptoms && (
+                        <div className="card-field">
+                            <div className="card-field-header"><span className="card-field-icon">🩺</span><div className="card-field-label">Chief Complaint</div></div>
+                            <div className="card-field-value">{patient.symptoms}</div>
+                        </div>
+                    )}
+
+                    {patient.vitals && patient.vitals !== 'Not recorded' && (
+                        <div className="card-field">
+                            <div className="card-field-header">
+                                <span className="card-field-icon">
+                                    <img
+                                        src={heartRateIcon}
+                                        alt="Vitals"
+                                        style={{ width: '1em', height: '1em', display: 'block' }}
+                                    />
+                                </span>
+                                <div className="card-field-label">Vitals</div>
+                            </div>
+                            <div className="card-field-value vitals-display">{patient.vitals}</div>
+                        </div>
+                    )}
+
+                    <div className="card-explain">
+                        <div className="card-explain-title">AI Triage Rationale</div>
+                        <ul className="card-explain-list">
+                            {explanation.reasons.map((reason, idx) => (<li key={`${patient.id}-reason-${idx}`}>{reason}</li>))}
+                        </ul>
+                        <div className="card-confidence-row"><span>Confidence</span><span>{confidencePct}%</span></div>
+                        <div className="confidence-track" role="progressbar" aria-valuenow={confidencePct}>
+                            <div className="confidence-fill" style={{ width: `${confidencePct}%` }}></div>
+                        </div>
+                        {explanation.needsReview && <div className="review-flag">Manual review recommended</div>}
+                    </div>
+
+                    {patient.timeline && patient.timeline.length > 0 && <PatientTimeline events={patient.timeline} />}
+
+                    <div className="card-workflow-actions">
+                        {!actionType ? (
+                            <div className="workflow-btn-row">
+                                <button className="workflow-btn discharge-btn" onClick={() => setActionType('discharge')}>
+                                    🏠 Discharge
+                                </button>
+                                <button className="workflow-btn handoff-btn" onClick={() => setActionType('handoff')}>
+                                    🔀 Handoff
+                                </button>
+                            </div>
+                        ) : actionType === 'discharge' ? (
+                            <div className="workflow-form">
+                                <div className="workflow-form-title">🏠 Discharge Patient</div>
+                                <input className="workflow-input" value={actionNotes}
+                                    onChange={e => setActionNotes(e.target.value)}
+                                    placeholder="Discharge notes (optional)" />
+                                <div className="workflow-form-actions">
+                                    <button className="workflow-cancel" onClick={() => setActionType(null)}>Cancel</button>
+                                    <button className="workflow-confirm discharge" onClick={handleDischarge}>Confirm Discharge</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="workflow-form">
+                                <div className="workflow-form-title">🔀 Handoff Patient</div>
+                                <select className="workflow-input" value={actionDept} onChange={e => setActionDept(e.target.value)}>
+                                    <option value="ICU">ICU</option>
+                                    <option value="Surgery">Surgery</option>
+                                    <option value="Cardiology">Cardiology</option>
+                                    <option value="Radiology">Radiology</option>
+                                    <option value="Neurology">Neurology</option>
+                                    <option value="Pediatrics">Pediatrics</option>
+                                </select>
+                                <input className="workflow-input" value={actionNotes}
+                                    onChange={e => setActionNotes(e.target.value)}
+                                    placeholder="Handoff notes (optional)" />
+                                <div className="workflow-form-actions">
+                                    <button className="workflow-cancel" onClick={() => setActionType(null)}>Cancel</button>
+                                    <button className="workflow-confirm handoff" onClick={handleHandoff}>Confirm Handoff</button>
+                                </div>
+                            </div>
                         )}
                     </div>
-                </div>
+
+                    <div className="card-footer">
+                        <div className="card-timestamp"><span className="timestamp-icon">🕐</span>{formatTime(patient.timestamp)}</div>
+                        <div className={`card-priority-badge priority-${patient.priority}`}>
+                            <span className="badge-icon">{priorityInfo.icon}</span>{priorityInfo.label}
+                        </div>
+                    </div>
+                </>
             )}
-
-            <div className="card-explain">
-                <div className="card-explain-title">AI Triage Rationale</div>
-                <ul className="card-explain-list">
-                    {explanation.reasons.map((reason, idx) => (<li key={`${patient.id}-reason-${idx}`}>{reason}</li>))}
-                </ul>
-                <div className="card-confidence-row"><span>Confidence</span><span>{confidencePct}%</span></div>
-                <div className="confidence-track" role="progressbar" aria-valuenow={confidencePct}>
-                    <div className="confidence-fill" style={{ width: `${confidencePct}%` }}></div>
-                </div>
-                {explanation.needsReview && <div className="review-flag">Manual review recommended</div>}
-            </div>
-
-            {patient.timeline && patient.timeline.length > 0 && <PatientTimeline events={patient.timeline} />}
-
-            {/* Discharge / Handoff Actions */}
-            <div className="card-workflow-actions">
-                {!actionType ? (
-                    <div className="workflow-btn-row">
-                        <button className="workflow-btn discharge-btn" onClick={() => setActionType('discharge')}>
-                            🏠 Discharge
-                        </button>
-                        <button className="workflow-btn handoff-btn" onClick={() => setActionType('handoff')}>
-                            🔀 Handoff
-                        </button>
-                    </div>
-                ) : actionType === 'discharge' ? (
-                    <div className="workflow-form">
-                        <div className="workflow-form-title">🏠 Discharge Patient</div>
-                        <input className="workflow-input" value={actionNotes}
-                            onChange={e => setActionNotes(e.target.value)}
-                            placeholder="Discharge notes (optional)" />
-                        <div className="workflow-form-actions">
-                            <button className="workflow-cancel" onClick={() => setActionType(null)}>Cancel</button>
-                            <button className="workflow-confirm discharge" onClick={handleDischarge}>Confirm Discharge</button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="workflow-form">
-                        <div className="workflow-form-title">🔀 Handoff Patient</div>
-                        <select className="workflow-input" value={actionDept} onChange={e => setActionDept(e.target.value)}>
-                            <option value="ICU">ICU</option>
-                            <option value="Surgery">Surgery</option>
-                            <option value="Cardiology">Cardiology</option>
-                            <option value="Radiology">Radiology</option>
-                            <option value="Neurology">Neurology</option>
-                            <option value="Pediatrics">Pediatrics</option>
-                        </select>
-                        <input className="workflow-input" value={actionNotes}
-                            onChange={e => setActionNotes(e.target.value)}
-                            placeholder="Handoff notes (optional)" />
-                        <div className="workflow-form-actions">
-                            <button className="workflow-cancel" onClick={() => setActionType(null)}>Cancel</button>
-                            <button className="workflow-confirm handoff" onClick={handleHandoff}>Confirm Handoff</button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <div className="card-footer">
-                <div className="card-timestamp"><span className="timestamp-icon">🕐</span>{formatTime(patient.timestamp)}</div>
-                <div className={`card-priority-badge priority-${patient.priority}`}>
-                    <span className="badge-icon">{priorityInfo.icon}</span>{priorityInfo.label}
-                </div>
-            </div>
 
             {showDetail && <PatientDetailModal patient={patient} onClose={() => setShowDetail(false)} />}
         </div>
