@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { fetchPatients, retriagePatient } from '../api/patientApi.js';
 import PatientCard from './PatientCard.jsx';
 import ReTriageModal from './ReTriageModal.jsx';
+import { clearAuth } from '../api/authApi.js';
 
 const POLL_INTERVAL_MS = 4000;
 
@@ -35,7 +36,14 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
             setPatients(data);
             setLastUpdated(new Date());
             if (onPatientsChange) onPatientsChange(data);
-        } catch (err) { console.warn('Polling error:', err.message); }
+        } catch (err) {
+            console.warn('Polling error:', err.message);
+            // If auth is stale/invalid, force a clean login flow instead of showing an empty board.
+            if (err.message?.includes('401')) {
+                clearAuth();
+                window.location.reload();
+            }
+        }
     }, [onPatientsChange]);
 
     useEffect(() => {
@@ -61,8 +69,14 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
     const handleDismiss = (id) => setPatients(prev => prev.filter(p => p.id !== id));
     const handleRetriage = (patient) => setReTriageModal(patient);
     const handleReTriageSubmit = async (id, symptoms, vitals) => {
-        await retriagePatient(id, symptoms, vitals);
+        const updated = await retriagePatient(id, symptoms, vitals);
+        setPatients(prev => {
+            const next = prev.map(p => (p.id === id ? updated : p));
+            if (onPatientsChange) onPatientsChange(next);
+            return next;
+        });
         await loadPatients();
+        return updated;
     };
 
     const formatUpdated = () => {

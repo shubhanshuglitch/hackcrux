@@ -4,7 +4,36 @@ import { fetchUsers, createUser, updateUser, deleteUser } from '../api/userApi.j
 
 const ROLE_ICONS = { ADMIN: '👑', DOCTOR: '🩺', NURSE: '💉', RECEPTIONIST: '📋' };
 const ROLES = ['ALL', 'ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST'];
-const DEPARTMENTS = ['Emergency Medicine', 'Emergency Department', 'Administration', 'Front Desk', 'ICU', 'Surgery'];
+const ROLE_DISPLAY = { ADMIN: 'Admin', DOCTOR: 'Doctor', NURSE: 'Nurse', RECEPTIONIST: 'Receptionist' };
+const DEPARTMENTS = [
+    // General / Support
+    'Emergency Medicine',
+    'Emergency Department',
+    'ICU',
+    'Administration',
+    'Front Desk',
+    // Medical Specialties
+    'Cardiology',
+    'Cardiothoracic Surgery',
+    'Radiology',
+    'Neurology',
+    'Neurosurgery',
+    'Orthopedics',
+    'Oncology',
+    'Pediatrics',
+    'Gastroenterology',
+    'Psychiatry',
+    'Pulmonology',
+    'Nephrology',
+    'Anesthesiology',
+    'Pathology',
+    'Ophthalmology',
+    'Dermatology',
+    'Urology',
+    'ENT (Otolaryngology)',
+    'Hematology',
+    'Endocrinology',
+];
 
 const emptyForm = { username: '', fullName: '', email: '', role: 'DOCTOR', department: 'Emergency Medicine', active: true };
 
@@ -185,7 +214,7 @@ export default function UserManagement() {
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label>Department</label>
+                                    <label>Department / Specialization</label>
                                     <select name="department" value={formData.department} onChange={handleChange}>
                                         {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                                     </select>
@@ -231,7 +260,7 @@ export default function UserManagement() {
                                 </div>
                             </div>
                             <div className="user-card-details">
-                                <span className={`user-detail-chip role-${user.role}`}>{user.role}</span>
+                                <span className={`user-detail-chip role-${user.role}`}>{ROLE_ICONS[user.role]} {ROLE_DISPLAY[user.role] || user.role}</span>
                                 {user.department && <span className="user-detail-chip">{user.department}</span>}
                                 <span className="user-detail-chip">{user.active ? '🟢 Active' : '🔴 Inactive'}</span>
                             </div>

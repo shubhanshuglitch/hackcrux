@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { login, register, storeAuth } from '../api/authApi.js';
+import BrandMark from './BrandMark.jsx';
 
 export default function Login({ onLogin }) {
   const [isSignup, setIsSignup] = useState(false);
@@ -53,7 +54,7 @@ export default function Login({ onLogin }) {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <div className="login-logo">🏥</div>
+          <div className="login-logo"><BrandMark size={76} /></div>
           <h1>ER TRIAGE SPRINT</h1>
           <p>Emergency Room Intelligence System</p>
         </div>
@@ -131,7 +132,7 @@ export default function Login({ onLogin }) {
 
         <div className="demo-users">
           <p className="demo-label">Demo Credentials:</p>
-          <small>Username: <strong>dr.smith</strong> — Password: <strong>password123</strong></small>
+          <small>Username: <strong>admin</strong> — Password: <strong>password123</strong></small>
         </div>
       </div>
     </div>
