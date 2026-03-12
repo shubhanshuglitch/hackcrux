@@ -3,6 +3,10 @@ import { dismissPatient, dischargePatient, handoffPatient } from '../api/patient
 import PatientTimeline from './PatientTimeline.jsx';
 import PatientDetailModal from './PatientDetailModal.jsx';
 
+import heartRateIcon from '../assets/heart-rate.png';
+import retriageIcon from '../assets/arrow-counterclockwise-12-filled_.png';
+import collapseIcon from '../assets/arrow-bottom_.png';
+
 const SLA_MS = { RED: 5 * 60 * 1000, YELLOW: 15 * 60 * 1000, GREEN: 45 * 60 * 1000 };
 
 function formatTime(timestamp) {
@@ -53,15 +57,15 @@ function getSlaStatus(patient, nowTs) {
     };
 }
 
-// ── NEW: accept onDragStart and onDragEnd props from KanbanBoard ─────────────
-export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Date.now(), onDragStart, onDragEnd }) {
+// ── collapsed and onToggleCollapse are now controlled by KanbanBoard ─────────
+export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Date.now(), onDragStart, onDragEnd, collapsed, onToggleCollapse }) {
 // ────────────────────────────────────────────────────────────────────────────
     const [showActions, setShowActions] = useState(false);
     const [actionType, setActionType] = useState(null);
     const [actionNotes, setActionNotes] = useState('');
     const [actionDept, setActionDept] = useState('ICU');
     const [showDetail, setShowDetail] = useState(false);
-    const [collapsed, setCollapsed] = useState(false);
+    // NOTE: `collapsed` is no longer local state — it comes from props
 
     const handleDismiss = async () => {
         try { await dismissPatient(patient.id); if (onDismiss) onDismiss(patient.id); }
@@ -97,18 +101,13 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
         <div
             className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}`}
             id={`patient-${patient.id}`}
-            // ── NEW: make the card draggable ──────────────────────────────────
             draggable="true"
             onDragStart={(e) => {
-                // Store id in dataTransfer as a fallback (good practice)
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', patient.id);
                 if (onDragStart) onDragStart(patient.id);
             }}
-            onDragEnd={() => {
-                if (onDragEnd) onDragEnd();
-            }}
-            // ─────────────────────────────────────────────────────────────────
+            onDragEnd={() => { if (onDragEnd) onDragEnd(); }}
         >
             <div className="card-header">
                 <div className="card-header-left">
@@ -121,12 +120,33 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
                 <div className="card-header-actions">
                     <button
                         className="card-retriage"
-                        onClick={() => setCollapsed(c => !c)}
+                        onClick={() => onToggleCollapse(patient.id)}
                         title={collapsed ? 'Expand card' : 'Collapse card'}
                     >
-                        {collapsed ? '⬇️' : '⬆️'}
+                        <img
+                            src={collapseIcon}
+                            alt={collapsed ? 'Expand' : 'Collapse'}
+                            style={{
+                                width: '1em',
+                                height: '1em',
+                                display: 'block',
+                                // arrow-bottom_.png points down by default:
+                                // collapsed → point down (no rotation) = "click to expand"
+                                // expanded  → point up (rotate 180°)   = "click to collapse"
+                                transform: collapsed ? 'none' : 'rotate(180deg)',
+                                transition: 'transform 0.2s ease',
+                            }}
+                        />
                     </button>
-                    {onRetriage && <button className="card-retriage" onClick={() => onRetriage(patient)} title="Re-triage">🔄</button>}
+                    {onRetriage && (
+                        <button className="card-retriage" onClick={() => onRetriage(patient)} title="Re-triage">
+                            <img
+                                src={retriageIcon}
+                                alt="Re-triage"
+                                style={{ width: '1em', height: '1em', display: 'block' }}
+                            />
+                        </button>
+                    )}
                     <button className="card-dismiss" onClick={handleDismiss} title="Dismiss" id={`dismiss-${patient.id}`}>✕</button>
                 </div>
             </div>
@@ -167,7 +187,16 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
 
                     {patient.vitals && patient.vitals !== 'Not recorded' && (
                         <div className="card-field">
-                            <div className="card-field-header"><span className="card-field-icon">❤️</span><div className="card-field-label">Vitals</div></div>
+                            <div className="card-field-header">
+                                <span className="card-field-icon">
+                                    <img
+                                        src={heartRateIcon}
+                                        alt="Vitals"
+                                        style={{ width: '1em', height: '1em', display: 'block' }}
+                                    />
+                                </span>
+                                <div className="card-field-label">Vitals</div>
+                            </div>
                             <div className="card-field-value vitals-display">{patient.vitals}</div>
                         </div>
                     )}

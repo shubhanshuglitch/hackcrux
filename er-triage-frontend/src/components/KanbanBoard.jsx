@@ -4,6 +4,9 @@ import PatientCard from './PatientCard.jsx';
 import ReTriageModal from './ReTriageModal.jsx';
 
 const POLL_INTERVAL_MS = 4000;
+// ── NEW: localStorage key for persisting collapse state ──────────────────────
+const COLLAPSE_STORAGE_KEY = 'triage_collapsed_cards';
+// ────────────────────────────────────────────────────────────────────────────
 
 const COLUMNS = [
     {
@@ -23,6 +26,25 @@ const COLUMNS = [
     },
 ];
 
+// ── NEW: helpers to read/write collapse state from localStorage ──────────────
+function loadCollapsedCards() {
+    try {
+        const stored = localStorage.getItem(COLLAPSE_STORAGE_KEY);
+        return stored ? JSON.parse(stored) : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveCollapsedCards(state) {
+    try {
+        localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(state));
+    } catch {
+        // localStorage unavailable — silently ignore
+    }
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 export default function KanbanBoard({ newPatient, onPatientsChange }) {
     const [patients, setPatients] = useState([]);
     const [lastUpdated, setLastUpdated] = useState(new Date());
@@ -30,17 +52,29 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
     const [retriageModal, setReTriageModal] = useState(null);
     const [dragOverCol, setDragOverCol] = useState(null);
 
+    // ── NEW: initialise from localStorage so state survives navigation ───────
+    const [collapsedCards, setCollapsedCards] = useState(loadCollapsedCards);
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── NEW: persist to localStorage whenever collapsedCards changes ─────────
+    useEffect(() => {
+        saveCollapsedCards(collapsedCards);
+    }, [collapsedCards]);
+    // ────────────────────────────────────────────────────────────────────────
+
+    const handleToggleCollapse = useCallback((patientId) => {
+        setCollapsedCards(prev => {
+            const next = { ...prev, [patientId]: !prev[patientId] };
+            return next;
+        });
+    }, []);
+
     const dragPatientId = useRef(null);
-    // Tracks priority overrides that have been dropped but not yet confirmed
-    // by the server. Prevents the 4-second poll from snapping the card back
-    // while the PUT /priority request is still in flight.
     const pendingPriorityRef = useRef({});
 
     const loadPatients = useCallback(async () => {
         try {
             const data = await fetchPatients();
-            // Re-apply any pending local overrides so a poll arriving before
-            // the server has saved the move doesn't revert the card.
             const merged = data.map(p =>
                 pendingPriorityRef.current[p.id] !== undefined
                     ? { ...p, priority: pendingPriorityRef.current[p.id] }
@@ -72,14 +106,22 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
         }
     }, [newPatient]);
 
-    const handleDismiss = (id) => setPatients(prev => prev.filter(p => p.id !== id));
+    const handleDismiss = (id) => {
+        setPatients(prev => prev.filter(p => p.id !== id));
+        // Clean up persisted collapse entry for dismissed patient
+        setCollapsedCards(prev => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+        });
+    };
+
     const handleRetriage = (patient) => setReTriageModal(patient);
     const handleReTriageSubmit = async (id, symptoms, vitals) => {
         await retriagePatient(id, symptoms, vitals);
         await loadPatients();
     };
 
-    // ── Drag handlers ────────────────────────────────────────────────────────
     const handleDragStart = useCallback((patientId) => {
         dragPatientId.current = patientId;
     }, []);
@@ -104,30 +146,23 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
         if (!id) return;
         dragPatientId.current = null;
 
-        // Find current patient — skip if already in this column
         setPatients(prev => {
             const patient = prev.find(p => p.id === id);
             if (!patient || patient.priority === colKey) return prev;
 
             const oldPriority = patient.priority;
-
-            // 1. Move card immediately in local state
             const updated = prev.map(p => p.id === id ? { ...p, priority: colKey } : p);
 
-            // 2. Record pending override to survive the next poll
             pendingPriorityRef.current[id] = colKey;
 
-            // 3. Persist to server asynchronously
             updatePatientPriority(id, colKey)
                 .catch((err) => {
                     console.error('Failed to update priority on server:', err);
-                    // Roll back on failure
                     setPatients(prev2 => prev2.map(p =>
                         p.id === id ? { ...p, priority: oldPriority } : p
                     ));
                 })
                 .finally(() => {
-                    // Remove pending override — future polls now read from server
                     delete pendingPriorityRef.current[id];
                 });
 
@@ -139,7 +174,6 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
         setDragOverCol(null);
         dragPatientId.current = null;
     }, []);
-    // ────────────────────────────────────────────────────────────────────────
 
     const formatUpdated = () => {
         if (!lastUpdated) return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -167,7 +201,6 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
 
             <div className="kanban-grid">
                 {COLUMNS.map(col => {
-                    // Derived directly from state — badge count always stays correct
                     const colPatients = patients.filter(p => p.priority === col.key);
                     return (
                         <div
@@ -202,6 +235,8 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                                             onRetriage={handleRetriage}
                                             onDragStart={handleDragStart}
                                             onDragEnd={handleDragEnd}
+                                            collapsed={!!collapsedCards[patient.id]}
+                                            onToggleCollapse={handleToggleCollapse}
                                         />
                                     ))
                                 )}
