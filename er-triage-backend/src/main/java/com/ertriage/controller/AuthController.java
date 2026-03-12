@@ -77,6 +77,7 @@ public class AuthController {
                 .role(User.Role.valueOf(role.toUpperCase()))
                 .department("Emergency Department")
                 .active(true)
+                .createdAt(LocalDateTime.now())
                 .build();
 
         User saved = userRepository.save(user);

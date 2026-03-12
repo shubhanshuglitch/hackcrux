@@ -4,7 +4,6 @@ import com.ertriage.model.User;
 import com.ertriage.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +26,7 @@ public class UserService {
         return userRepository.findByActiveTrue();
     }
 
-    public Optional<User> getUserById(Long id) {
+    public Optional<User> getUserById(String id) {
         return userRepository.findById(id);
     }
 
@@ -43,7 +42,6 @@ public class UserService {
         return userRepository.findByDepartment(department);
     }
 
-    @Transactional
     public User createUser(User user) {
         if (userRepository.existsByUsername(user.getUsername()))
             throw new IllegalArgumentException("Username already exists: " + user.getUsername());
@@ -54,11 +52,16 @@ public class UserService {
         } else if (!user.getPassword().startsWith("$2a$")) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
+        if (user.getCreatedAt() == null) {
+            user.setCreatedAt(LocalDateTime.now());
+        }
+        if (user.getActive() == null) {
+            user.setActive(true);
+        }
         return userRepository.save(user);
     }
 
-    @Transactional
-    public User updateUser(Long id, User updatedUser) {
+    public User updateUser(String id, User updatedUser) {
         User existing = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
         existing.setFullName(updatedUser.getFullName());
@@ -69,16 +72,14 @@ public class UserService {
         return userRepository.save(existing);
     }
 
-    @Transactional
-    public void deactivateUser(Long id) {
+    public void deactivateUser(String id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
         user.setActive(false);
         userRepository.save(user);
     }
 
-    @Transactional
-    public void deleteUser(Long id) {
+    public void deleteUser(String id) {
         if (!userRepository.existsById(id))
             throw new IllegalArgumentException("User not found: " + id);
         userRepository.deleteById(id);

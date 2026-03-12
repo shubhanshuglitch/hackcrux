@@ -29,27 +29,27 @@ public class DataInitializer {
                         User.builder().username("admin").fullName("System Administrator")
                                 .email("admin@ertriage.com").password(defaultPassword)
                                 .role(User.Role.ADMIN).department("Administration")
-                                .active(true).build(),
+                                .active(true).createdAt(java.time.LocalDateTime.now()).build(),
                         User.builder().username("dr.smith").fullName("Dr. Sarah Smith")
                                 .email("sarah.smith@hospital.com").password(defaultPassword)
                                 .role(User.Role.DOCTOR).department("Emergency Medicine")
-                                .active(true).build(),
+                                .active(true).createdAt(java.time.LocalDateTime.now()).build(),
                         User.builder().username("dr.patel").fullName("Dr. Rajesh Patel")
                                 .email("rajesh.patel@hospital.com").password(defaultPassword)
                                 .role(User.Role.DOCTOR).department("Emergency Medicine")
-                                .active(true).build(),
+                                .active(true).createdAt(java.time.LocalDateTime.now()).build(),
                         User.builder().username("nurse.johnson").fullName("Emily Johnson")
                                 .email("emily.johnson@hospital.com").password(defaultPassword)
                                 .role(User.Role.NURSE).department("Emergency Department")
-                                .active(true).build(),
+                                .active(true).createdAt(java.time.LocalDateTime.now()).build(),
                         User.builder().username("nurse.kumar").fullName("Priya Kumar")
                                 .email("priya.kumar@hospital.com").password(defaultPassword)
                                 .role(User.Role.NURSE).department("Emergency Department")
-                                .active(true).build(),
+                                .active(true).createdAt(java.time.LocalDateTime.now()).build(),
                         User.builder().username("reception.admin").fullName("Michael Brown")
                                 .email("reception@hospital.com").password(defaultPassword)
                                 .role(User.Role.RECEPTIONIST).department("Front Desk")
-                                .active(true).build());
+                                .active(true).createdAt(java.time.LocalDateTime.now()).build());
                 userRepository.saveAll(defaultUsers);
                 System.out.println("Initialized " + defaultUsers.size() + " default users");
             }

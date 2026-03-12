@@ -39,7 +39,7 @@ public class PatientController {
     }
 
     @PutMapping("/{id}/retriage")
-    public ResponseEntity<PatientDTO> retriagePatient(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<PatientDTO> retriagePatient(@PathVariable String id, @RequestBody Map<String, String> body) {
         try {
             return ResponseEntity.ok(patientService.retriagePatient(id, body.get("symptoms"), body.get("vitals")));
         } catch (IllegalArgumentException e) {
@@ -48,13 +48,13 @@ public class PatientController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePatient(@PathVariable Long id) {
+    public ResponseEntity<Void> deletePatient(@PathVariable String id) {
         patientService.deletePatient(id);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}/discharge")
-    public ResponseEntity<PatientDTO> dischargePatient(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<PatientDTO> dischargePatient(@PathVariable String id, @RequestBody Map<String, String> body) {
         try {
             String notes = body.getOrDefault("notes", "Patient discharged");
             String performedBy = body.getOrDefault("performedBy", "Staff");
@@ -65,7 +65,7 @@ public class PatientController {
     }
 
     @PutMapping("/{id}/handoff")
-    public ResponseEntity<PatientDTO> handoffPatient(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<PatientDTO> handoffPatient(@PathVariable String id, @RequestBody Map<String, String> body) {
         try {
             String toDepartment = body.getOrDefault("toDepartment", "Unknown");
             String notes = body.getOrDefault("notes", "");
