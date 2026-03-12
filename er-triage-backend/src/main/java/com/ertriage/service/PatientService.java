@@ -269,9 +269,4 @@ public class PatientService {
         }
         return alphaTokens >= 1;
     }
-
-    public Object updatePriority(Long id, String upperCase) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'updatePriority'");
-    }
 }
