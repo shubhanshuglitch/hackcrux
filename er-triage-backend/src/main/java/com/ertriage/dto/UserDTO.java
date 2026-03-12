@@ -10,6 +10,7 @@ public class UserDTO {
     private String email;
     private String role;
     private String department;
+    private String specialization;
     private Boolean active;
     private LocalDateTime createdAt;
     private LocalDateTime lastLogin;
@@ -25,6 +26,7 @@ public class UserDTO {
         dto.email = user.getEmail();
         dto.role = user.getRole().name();
         dto.department = user.getDepartment();
+        dto.specialization = user.getSpecialization();
         dto.active = user.getActive();
         dto.createdAt = user.getCreatedAt();
         dto.lastLogin = user.getLastLogin();
@@ -53,6 +55,10 @@ public class UserDTO {
 
     public String getDepartment() {
         return department;
+    }
+
+    public String getSpecialization() {
+        return specialization;
     }
 
     public Boolean getActive() {

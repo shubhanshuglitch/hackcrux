@@ -126,6 +126,18 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
                 </div>
             )}
 
+            {(patient.assignedDoctorName || patient.assignedDoctorSpecialization) && (
+                <div className="card-field assigned-doctor-field">
+                    <div className="card-field-header"><span className="card-field-icon">👨‍⚕️</span><div className="card-field-label">Assigned Doctor</div></div>
+                    <div className="card-field-value">
+                        <span className="assigned-doctor-name">{patient.assignedDoctorName || 'Unassigned'}</span>
+                        {patient.assignedDoctorSpecialization && (
+                            <span className="assigned-doctor-spec"> ({patient.assignedDoctorSpecialization})</span>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <div className="card-explain">
                 <div className="card-explain-title">AI Triage Rationale</div>
                 <ul className="card-explain-list">

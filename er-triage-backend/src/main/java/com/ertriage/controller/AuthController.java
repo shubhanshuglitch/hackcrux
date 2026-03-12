@@ -57,6 +57,7 @@ public class AuthController {
         String fullName = body.get("fullName");
         String email = body.get("email");
         String role = body.getOrDefault("role", "NURSE");
+        String specialization = body.get("specialization");
 
         if (username == null || password == null || fullName == null || email == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "All fields required"));
@@ -76,6 +77,7 @@ public class AuthController {
                 .password(passwordEncoder.encode(password))
                 .role(User.Role.valueOf(role.toUpperCase()))
                 .department("Emergency Department")
+                .specialization(specialization)
                 .active(true)
                 .build();
 
