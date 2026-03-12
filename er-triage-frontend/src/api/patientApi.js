@@ -63,3 +63,15 @@ export async function handoffPatient(id, toDepartment, notes, performedBy) {
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
   return response.json();
 }
+
+// ── NEW: update a patient's triage priority (used by drag-and-drop) ──────────
+export async function updatePatientPriority(id, priority) {
+  const response = await fetch(`${API_BASE}/patients/${id}/priority`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ priority }),
+  });
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  return response.json();
+}
+// ────────────────────────────────────────────────────────────────────────────

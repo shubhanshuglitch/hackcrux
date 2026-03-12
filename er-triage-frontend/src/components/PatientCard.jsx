@@ -3,6 +3,10 @@ import { dismissPatient, dischargePatient, handoffPatient } from '../api/patient
 import PatientTimeline from './PatientTimeline.jsx';
 import PatientDetailModal from './PatientDetailModal.jsx';
 
+import heartRateIcon from '../assets/heart-rate.png';
+import retriageIcon from '../assets/arrow-counterclockwise-12-filled_.png';
+import collapseIcon from '../assets/arrow-bottom_.png';
+
 const SLA_MS = { RED: 5 * 60 * 1000, YELLOW: 15 * 60 * 1000, GREEN: 45 * 60 * 1000 };
 
 function formatTime(timestamp) {
@@ -53,15 +57,15 @@ function getSlaStatus(patient, nowTs) {
     };
 }
 
-export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Date.now() }) {
+// ── collapsed and onToggleCollapse are now controlled by KanbanBoard ─────────
+export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Date.now(), onDragStart, onDragEnd, collapsed, onToggleCollapse }) {
+// ────────────────────────────────────────────────────────────────────────────
     const [showActions, setShowActions] = useState(false);
-    const [actionType, setActionType] = useState(null); // 'discharge' or 'handoff'
+    const [actionType, setActionType] = useState(null);
     const [actionNotes, setActionNotes] = useState('');
     const [actionDept, setActionDept] = useState('ICU');
     const [showDetail, setShowDetail] = useState(false);
-    // ── NEW: collapse state (default expanded) ───────────────────────────────
-    const [collapsed, setCollapsed] = useState(false);
-    // ────────────────────────────────────────────────────────────────────────
+    // NOTE: `collapsed` is no longer local state — it comes from props
 
     const handleDismiss = async () => {
         try { await dismissPatient(patient.id); if (onDismiss) onDismiss(patient.id); }
@@ -94,9 +98,17 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
     const confidencePct = Math.round(explanation.confidence * 100);
 
     return (
-        <div className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}`} id={`patient-${patient.id}`}>
-
-            {/* HEADER — unchanged, except collapse button inserted before retriage */}
+        <div
+            className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}`}
+            id={`patient-${patient.id}`}
+            draggable="true"
+            onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', patient.id);
+                if (onDragStart) onDragStart(patient.id);
+            }}
+            onDragEnd={() => { if (onDragEnd) onDragEnd(); }}
+        >
             <div className="card-header">
                 <div className="card-header-left">
                     <div className="card-patient-name" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }} title="Click for details">{patient.name || 'Unknown Patient'}</div>
@@ -106,21 +118,39 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
                     </div>
                 </div>
                 <div className="card-header-actions">
-                    {/* ── NEW: collapse/expand toggle — same className as card-retriage, placed before it ── */}
                     <button
                         className="card-retriage"
-                        onClick={() => setCollapsed(c => !c)}
+                        onClick={() => onToggleCollapse(patient.id)}
                         title={collapsed ? 'Expand card' : 'Collapse card'}
                     >
-                        {collapsed ? '⬇️' : '⬆️'}
+                        <img
+                            src={collapseIcon}
+                            alt={collapsed ? 'Expand' : 'Collapse'}
+                            style={{
+                                width: '1em',
+                                height: '1em',
+                                display: 'block',
+                                // arrow-bottom_.png points down by default:
+                                // collapsed → point down (no rotation) = "click to expand"
+                                // expanded  → point up (rotate 180°)   = "click to collapse"
+                                transform: collapsed ? 'none' : 'rotate(180deg)',
+                                transition: 'transform 0.2s ease',
+                            }}
+                        />
                     </button>
-                    {/* ── end new ── */}
-                    {onRetriage && <button className="card-retriage" onClick={() => onRetriage(patient)} title="Re-triage">🔄</button>}
+                    {onRetriage && (
+                        <button className="card-retriage" onClick={() => onRetriage(patient)} title="Re-triage">
+                            <img
+                                src={retriageIcon}
+                                alt="Re-triage"
+                                style={{ width: '1em', height: '1em', display: 'block' }}
+                            />
+                        </button>
+                    )}
                     <button className="card-dismiss" onClick={handleDismiss} title="Dismiss" id={`dismiss-${patient.id}`}>✕</button>
                 </div>
             </div>
 
-            {/* ── COLLAPSED STATE: chief complaint + timestamp only ── */}
             {collapsed && (
                 <>
                     {patient.symptoms && (
@@ -140,7 +170,6 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
                 </>
             )}
 
-            {/* ── EXPANDED STATE: all original content, completely unchanged ── */}
             {!collapsed && (
                 <>
                     <div className={`sla-chip${sla.breach ? ' breached' : sla.warning ? ' warning' : ''}`}>
@@ -158,7 +187,16 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
 
                     {patient.vitals && patient.vitals !== 'Not recorded' && (
                         <div className="card-field">
-                            <div className="card-field-header"><span className="card-field-icon">❤️</span><div className="card-field-label">Vitals</div></div>
+                            <div className="card-field-header">
+                                <span className="card-field-icon">
+                                    <img
+                                        src={heartRateIcon}
+                                        alt="Vitals"
+                                        style={{ width: '1em', height: '1em', display: 'block' }}
+                                    />
+                                </span>
+                                <div className="card-field-label">Vitals</div>
+                            </div>
                             <div className="card-field-value vitals-display">{patient.vitals}</div>
                         </div>
                     )}

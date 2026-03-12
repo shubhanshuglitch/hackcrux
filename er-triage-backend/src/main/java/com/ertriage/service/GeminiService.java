@@ -42,8 +42,20 @@ public class GeminiService {
                       "age": <integer or null>,
                       "symptoms": "concise comma-separated symptom list",
                       "vitals": "all vitals mentioned: BP, pulse, temp, SpO2, RR",
-                      "priority": "RED or YELLOW or GREEN"
+                      "priority": "RED or YELLOW or GREEN",
+                      "recommended_specialization": "the medical specialization best suited to treat these symptoms"
                     }
+
+                    RECOMMENDED SPECIALIZATION — pick the BEST match:
+                    - Cardiologist: chest pain, palpitations, arrhythmia, heart failure, hypertension
+                    - Pulmonologist: breathing difficulty, asthma, COPD, pneumonia, SpO2 issues
+                    - Neurologist: stroke symptoms, seizures, headache, altered consciousness, numbness
+                    - Orthopedic Surgeon: fractures, dislocations, bone/joint injuries, trauma to limbs
+                    - Gastroenterologist: abdominal pain, vomiting, diarrhea, GI bleeding
+                    - General Surgeon: lacerations, wounds, trauma requiring surgery
+                    - Endocrinologist: diabetic emergency, thyroid crisis
+                    - Allergist: anaphylaxis, severe allergic reactions
+                    - General Physician: mild symptoms, routine check-up, minor ailments
 
                     PRIORITY CLASSIFICATION — apply the FIRST matching rule:
 
@@ -132,6 +144,7 @@ public class GeminiService {
             result.put("symptoms", patientData.path("symptoms").asText("Not specified"));
             result.put("vitals", patientData.path("vitals").asText("Not recorded"));
             result.put("priority", patientData.path("priority").asText("GREEN"));
+            result.put("recommended_specialization", patientData.path("recommended_specialization").asText("Emergency Medicine"));
             return result;
 
         } catch (Exception e) {

@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { fetchPatients, retriagePatient } from '../api/patientApi.js';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { fetchPatients, retriagePatient, updatePatientPriority } from '../api/patientApi.js';
 import PatientCard from './PatientCard.jsx';
 import ReTriageModal from './ReTriageModal.jsx';
 
 const POLL_INTERVAL_MS = 4000;
+// ── NEW: localStorage key for persisting collapse state ──────────────────────
+const COLLAPSE_STORAGE_KEY = 'triage_collapsed_cards';
+// ────────────────────────────────────────────────────────────────────────────
 
 const COLUMNS = [
     {
@@ -23,18 +26,63 @@ const COLUMNS = [
     },
 ];
 
+// ── NEW: helpers to read/write collapse state from localStorage ──────────────
+function loadCollapsedCards() {
+    try {
+        const stored = localStorage.getItem(COLLAPSE_STORAGE_KEY);
+        return stored ? JSON.parse(stored) : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveCollapsedCards(state) {
+    try {
+        localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(state));
+    } catch {
+        // localStorage unavailable — silently ignore
+    }
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 export default function KanbanBoard({ newPatient, onPatientsChange }) {
     const [patients, setPatients] = useState([]);
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [nowTs, setNowTs] = useState(Date.now());
     const [retriageModal, setReTriageModal] = useState(null);
+    const [dragOverCol, setDragOverCol] = useState(null);
+
+    // ── NEW: initialise from localStorage so state survives navigation ───────
+    const [collapsedCards, setCollapsedCards] = useState(loadCollapsedCards);
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── NEW: persist to localStorage whenever collapsedCards changes ─────────
+    useEffect(() => {
+        saveCollapsedCards(collapsedCards);
+    }, [collapsedCards]);
+    // ────────────────────────────────────────────────────────────────────────
+
+    const handleToggleCollapse = useCallback((patientId) => {
+        setCollapsedCards(prev => {
+            const next = { ...prev, [patientId]: !prev[patientId] };
+            return next;
+        });
+    }, []);
+
+    const dragPatientId = useRef(null);
+    const pendingPriorityRef = useRef({});
 
     const loadPatients = useCallback(async () => {
         try {
             const data = await fetchPatients();
-            setPatients(data);
+            const merged = data.map(p =>
+                pendingPriorityRef.current[p.id] !== undefined
+                    ? { ...p, priority: pendingPriorityRef.current[p.id] }
+                    : p
+            );
+            setPatients(merged);
             setLastUpdated(new Date());
-            if (onPatientsChange) onPatientsChange(data);
+            if (onPatientsChange) onPatientsChange(merged);
         } catch (err) { console.warn('Polling error:', err.message); }
     }, [onPatientsChange]);
 
@@ -58,12 +106,74 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
         }
     }, [newPatient]);
 
-    const handleDismiss = (id) => setPatients(prev => prev.filter(p => p.id !== id));
+    const handleDismiss = (id) => {
+        setPatients(prev => prev.filter(p => p.id !== id));
+        // Clean up persisted collapse entry for dismissed patient
+        setCollapsedCards(prev => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+        });
+    };
+
     const handleRetriage = (patient) => setReTriageModal(patient);
     const handleReTriageSubmit = async (id, symptoms, vitals) => {
         await retriagePatient(id, symptoms, vitals);
         await loadPatients();
     };
+
+    const handleDragStart = useCallback((patientId) => {
+        dragPatientId.current = patientId;
+    }, []);
+
+    const handleDragOver = useCallback((e, colKey) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDragOverCol(colKey);
+    }, []);
+
+    const handleDragLeave = useCallback((e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+            setDragOverCol(null);
+        }
+    }, []);
+
+    const handleDrop = useCallback(async (e, colKey) => {
+        e.preventDefault();
+        setDragOverCol(null);
+
+        const id = dragPatientId.current;
+        if (!id) return;
+        dragPatientId.current = null;
+
+        setPatients(prev => {
+            const patient = prev.find(p => p.id === id);
+            if (!patient || patient.priority === colKey) return prev;
+
+            const oldPriority = patient.priority;
+            const updated = prev.map(p => p.id === id ? { ...p, priority: colKey } : p);
+
+            pendingPriorityRef.current[id] = colKey;
+
+            updatePatientPriority(id, colKey)
+                .catch((err) => {
+                    console.error('Failed to update priority on server:', err);
+                    setPatients(prev2 => prev2.map(p =>
+                        p.id === id ? { ...p, priority: oldPriority } : p
+                    ));
+                })
+                .finally(() => {
+                    delete pendingPriorityRef.current[id];
+                });
+
+            return updated;
+        });
+    }, []);
+
+    const handleDragEnd = useCallback(() => {
+        setDragOverCol(null);
+        dragPatientId.current = null;
+    }, []);
 
     const formatUpdated = () => {
         if (!lastUpdated) return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -93,7 +203,14 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                 {COLUMNS.map(col => {
                     const colPatients = patients.filter(p => p.priority === col.key);
                     return (
-                        <div key={col.key} className="kanban-col" id={`col-${col.key.toLowerCase()}`}>
+                        <div
+                            key={col.key}
+                            className={`kanban-col${dragOverCol === col.key ? ' drag-over' : ''}`}
+                            id={`col-${col.key.toLowerCase()}`}
+                            onDragOver={(e) => handleDragOver(e, col.key)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, col.key)}
+                        >
                             <div className={`col-header ${col.headerClass}`}>
                                 <span className="col-icon">{col.icon}</span>
                                 <div className="col-info">
@@ -110,8 +227,17 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                                     </div>
                                 ) : (
                                     colPatients.map(patient => (
-                                        <PatientCard key={patient.id} patient={patient} nowTs={nowTs}
-                                            onDismiss={handleDismiss} onRetriage={handleRetriage} />
+                                        <PatientCard
+                                            key={patient.id}
+                                            patient={patient}
+                                            nowTs={nowTs}
+                                            onDismiss={handleDismiss}
+                                            onRetriage={handleRetriage}
+                                            onDragStart={handleDragStart}
+                                            onDragEnd={handleDragEnd}
+                                            collapsed={!!collapsedCards[patient.id]}
+                                            onToggleCollapse={handleToggleCollapse}
+                                        />
                                     ))
                                 )}
                             </div>
