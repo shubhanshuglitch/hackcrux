@@ -208,6 +208,25 @@ public class PatientService {
         return toDTO(saved);
     }
 
+    public PatientDTO updatePriority(String id, String newPriorityStr) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
+
+        String oldPriority = patient.getPriority() != null ? patient.getPriority().name() : "GREEN";
+        Patient.Priority newPriority = Patient.Priority.valueOf(newPriorityStr);
+
+        patient.setPriority(newPriority);
+        Patient saved = patientRepository.save(patient);
+
+        if (!oldPriority.equals(newPriority.name())) {
+            logEvent(saved.getId(), PatientEvent.EventType.PRIORITY_CHANGE,
+                    "Priority changed from " + oldPriority + " to " + newPriority.name() + ".",
+                    oldPriority, newPriority.name(), "Staff (Manual)");
+        }
+
+        return toDTO(saved);
+    }
+
     private void logEvent(String patientId, PatientEvent.EventType type,
             String description, String oldPriority, String newPriority, String performedBy) {
         eventRepository.save(new PatientEvent(patientId, type, description, oldPriority, newPriority, performedBy));
@@ -249,5 +268,10 @@ public class PatientService {
             alphaTokens++;
         }
         return alphaTokens >= 1;
+    }
+
+    public Object updatePriority(Long id, String upperCase) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'updatePriority'");
     }
 }
