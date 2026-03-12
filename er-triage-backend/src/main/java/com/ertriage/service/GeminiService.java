@@ -32,6 +32,10 @@ public class GeminiService {
     }
 
     public Map<String, Object> extractPatientData(String rawInput) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return localExtractorService.extract(rawInput);
+        }
+
         try {
             String systemPrompt = """
                     You are a strict emergency room triage AI. Analyze the clinical input and return ONLY a raw JSON object — no markdown, no code fences, no explanation.
