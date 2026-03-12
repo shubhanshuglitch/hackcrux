@@ -1,29 +1,24 @@
 package com.ertriage.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "patients")
+@Document(collection = "patients")
 public class Patient {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     private String name;
     private Integer age;
 
-    @Column(length = 1000)
     private String symptoms;
 
-    @Column(length = 500)
     private String vitals;
 
-    @Enumerated(EnumType.STRING)
     private Priority priority;
 
-    @Column(length = 2000)
     private String rawInput;
 
     private String assignedDoctorName;
@@ -38,8 +33,9 @@ public class Patient {
     public Patient() {
     }
 
-    public Patient(Long id, String name, Integer age, String symptoms, String vitals,
-            Priority priority, String rawInput, String assignedDoctorName, String assignedDoctorSpecialization, LocalDateTime timestamp) {
+    public Patient(String id, String name, Integer age, String symptoms, String vitals,
+            Priority priority, String rawInput, String assignedDoctorName, String assignedDoctorSpecialization,
+            LocalDateTime timestamp) {
         this.id = id;
         this.name = name;
         this.age = age;
@@ -52,12 +48,7 @@ public class Patient {
         this.timestamp = timestamp;
     }
 
-    @PrePersist
-    public void prePersist() {
-        this.timestamp = LocalDateTime.now();
-    }
-
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
@@ -97,7 +88,7 @@ public class Patient {
         return timestamp;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -142,7 +133,7 @@ public class Patient {
     }
 
     public static class PatientBuilder {
-        private Long id;
+        private String id;
         private String name;
         private Integer age;
         private String symptoms;
@@ -153,7 +144,7 @@ public class Patient {
         private String assignedDoctorSpecialization;
         private LocalDateTime timestamp;
 
-        public PatientBuilder id(Long id) {
+        public PatientBuilder id(String id) {
             this.id = id;
             return this;
         }

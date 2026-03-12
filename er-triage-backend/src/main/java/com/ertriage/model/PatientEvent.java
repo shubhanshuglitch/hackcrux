@@ -1,31 +1,25 @@
 package com.ertriage.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "patient_events")
+@Document(collection = "patient_events")
 public class PatientEvent {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(nullable = false)
-    private Long patientId;
+    private String patientId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private EventType eventType;
 
-    @Column(length = 500)
     private String description;
 
     private String oldPriority;
     private String newPriority;
     private String performedBy;
 
-    @Column(nullable = false)
     private LocalDateTime timestamp;
 
     public enum EventType {
@@ -35,7 +29,7 @@ public class PatientEvent {
     public PatientEvent() {
     }
 
-    public PatientEvent(Long patientId, EventType eventType, String description,
+    public PatientEvent(String patientId, EventType eventType, String description,
             String oldPriority, String newPriority, String performedBy) {
         this.patientId = patientId;
         this.eventType = eventType;
@@ -46,11 +40,11 @@ public class PatientEvent {
         this.timestamp = LocalDateTime.now();
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public Long getPatientId() {
+    public String getPatientId() {
         return patientId;
     }
 
@@ -78,11 +72,11 @@ public class PatientEvent {
         return timestamp;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
-    public void setPatientId(Long patientId) {
+    public void setPatientId(String patientId) {
         this.patientId = patientId;
     }
 

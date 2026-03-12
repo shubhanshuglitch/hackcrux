@@ -4,7 +4,7 @@ import com.ertriage.model.User;
 import java.time.LocalDateTime;
 
 public class UserDTO {
-    private Long id;
+    private String id;
     private String username;
     private String fullName;
     private String email;
@@ -33,7 +33,7 @@ public class UserDTO {
         return dto;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 

@@ -1,38 +1,32 @@
 package com.ertriage.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "users")
+@Document(collection = "users")
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(nullable = false, unique = true)
+    @Indexed(unique = true)
     private String username;
 
-    @Column(nullable = false)
     private String fullName;
 
-    @Column(nullable = false, unique = true)
+    @Indexed(unique = true)
     private String email;
 
-    @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private Role role;
 
-    @Column(nullable = false)
     private String department;
 
     private String specialization;
 
-    @Column(nullable = false)
     private Boolean active;
 
     private LocalDateTime createdAt;
@@ -45,7 +39,7 @@ public class User {
     public User() {
     }
 
-    public User(Long id, String username, String fullName, String email, String password, Role role,
+    public User(String id, String username, String fullName, String email, String password, Role role,
             String department, String specialization, Boolean active, LocalDateTime createdAt, LocalDateTime lastLogin) {
         this.id = id;
         this.username = username;
@@ -60,14 +54,7 @@ public class User {
         this.lastLogin = lastLogin;
     }
 
-    @PrePersist
-    public void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        if (this.active == null)
-            this.active = true;
-    }
-
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
@@ -111,7 +98,7 @@ public class User {
         return lastLogin;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -160,7 +147,7 @@ public class User {
     }
 
     public static class UserBuilder {
-        private Long id;
+        private String id;
         private String username;
         private String fullName;
         private String email;
@@ -172,7 +159,7 @@ public class User {
         private LocalDateTime createdAt;
         private LocalDateTime lastLogin;
 
-        public UserBuilder id(Long id) {
+        public UserBuilder id(String id) {
             this.id = id;
             return this;
         }

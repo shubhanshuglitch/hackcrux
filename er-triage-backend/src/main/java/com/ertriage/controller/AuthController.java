@@ -79,6 +79,7 @@ public class AuthController {
                 .department("Emergency Department")
                 .specialization(specialization)
                 .active(true)
+                .createdAt(LocalDateTime.now())
                 .build();
 
         User saved = userRepository.save(user);
