@@ -3,7 +3,7 @@ package com.ertriage.dto;
 import java.time.LocalDateTime;
 
 public class PatientEventDTO {
-    private Long id;
+    private String id;
     private String eventType;
     private String description;
     private String oldPriority;
@@ -14,7 +14,7 @@ public class PatientEventDTO {
     public PatientEventDTO() {
     }
 
-    public PatientEventDTO(Long id, String eventType, String description,
+    public PatientEventDTO(String id, String eventType, String description,
             String oldPriority, String newPriority,
             String performedBy, LocalDateTime timestamp) {
         this.id = id;
@@ -26,7 +26,7 @@ public class PatientEventDTO {
         this.timestamp = timestamp;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
@@ -54,7 +54,7 @@ public class PatientEventDTO {
         return timestamp;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

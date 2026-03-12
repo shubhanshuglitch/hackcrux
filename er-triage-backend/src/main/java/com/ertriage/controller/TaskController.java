@@ -37,7 +37,7 @@ public class TaskController {
     }
 
     @PutMapping("/{id}/complete")
-    public ResponseEntity<Task> completeTask(@PathVariable Long id) {
+    public ResponseEntity<Task> completeTask(@PathVariable String id) {
         return taskRepository.findById(id).map(task -> {
             task.setCompleted(true);
             return ResponseEntity.ok(taskRepository.save(task));
@@ -45,7 +45,7 @@ public class TaskController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteTask(@PathVariable String id) {
         if (!taskRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }

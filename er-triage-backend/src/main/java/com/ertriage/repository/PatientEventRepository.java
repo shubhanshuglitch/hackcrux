@@ -1,15 +1,15 @@
 package com.ertriage.repository;
 
 import com.ertriage.model.PatientEvent;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface PatientEventRepository extends JpaRepository<PatientEvent, Long> {
-    List<PatientEvent> findByPatientIdOrderByTimestampAsc(Long patientId);
+public interface PatientEventRepository extends MongoRepository<PatientEvent, String> {
+    List<PatientEvent> findByPatientIdOrderByTimestampAsc(String patientId);
 
-    List<PatientEvent> findByPatientIdInOrderByTimestampAsc(List<Long> patientIds);
+    List<PatientEvent> findByPatientIdInOrderByTimestampAsc(List<String> patientIds);
 
-    void deleteByPatientId(Long patientId);
+    void deleteByPatientId(String patientId);
 }
