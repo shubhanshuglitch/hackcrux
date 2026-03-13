@@ -176,8 +176,10 @@ public class PatientService {
         patient.setSymptoms(newSymptoms);
         patient.setVitals(newVitals);
 
-        String combinedInput = String.format("%s. Symptoms: %s. Vitals: %s",
-                patient.getRawInput(), newSymptoms, newVitals);
+        String combinedInput = String.format(
+        "Patient re-assessment. Current symptoms: %s. Current vitals: %s. " +
+        "Previous history is no longer relevant. Evaluate based only on current presentation.",
+        newSymptoms, newVitals);
 
         String aiPriority = "YELLOW";
         try {
