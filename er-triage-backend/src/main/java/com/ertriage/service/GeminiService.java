@@ -2,8 +2,8 @@ package com.ertriage.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,25 +13,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Service
-public class GeminiService {
+public class GeminiService implements AiExtractionService {
+
+    private static final Logger logger = LoggerFactory.getLogger(GeminiService.class);
 
     private final LocalExtractorService localExtractorService;
-
-    @Value("${gemini.api.key}")
-    private String apiKey;
-
-    @Value("${gemini.api.url}")
-    private String apiUrl;
+    private final String apiKey;
+    private final String apiUrl;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
-    public GeminiService(LocalExtractorService localExtractorService) {
+    public GeminiService(LocalExtractorService localExtractorService, String apiKey, String apiUrl) {
         this.localExtractorService = localExtractorService;
+        this.apiKey = apiKey;
+        this.apiUrl = apiUrl;
     }
 
+    @Override
     public Map<String, Object> extractPatientData(String rawInput) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return localExtractorService.extract(rawInput);
+        }
+
         try {
             String systemPrompt = """
                     You are a strict emergency room triage AI. Analyze the clinical input and return ONLY a raw JSON object — no markdown, no code fences, no explanation.

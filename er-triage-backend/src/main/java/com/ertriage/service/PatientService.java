@@ -20,17 +20,17 @@ import java.util.stream.Collectors;
 public class PatientService {
 
     private final PatientRepository patientRepository;
-    private final GeminiService geminiService;
+    private final AiExtractionService aiExtractionService;
     private final TriageRulesEngine triageRulesEngine;
     private final LocalExtractorService localExtractorService;
     private final PatientEventRepository eventRepository;
     private final UserRepository userRepository;
 
-    public PatientService(PatientRepository patientRepository, GeminiService geminiService,
+    public PatientService(PatientRepository patientRepository, AiExtractionService aiExtractionService,
             TriageRulesEngine triageRulesEngine, LocalExtractorService localExtractorService,
             PatientEventRepository eventRepository, UserRepository userRepository) {
         this.patientRepository = patientRepository;
-        this.geminiService = geminiService;
+        this.aiExtractionService = aiExtractionService;
         this.triageRulesEngine = triageRulesEngine;
         this.localExtractorService = localExtractorService;
         this.eventRepository = eventRepository;
@@ -38,7 +38,7 @@ public class PatientService {
     }
 
     public PatientDTO processAndSavePatient(String rawInput) {
-        Map<String, Object> extractedData = geminiService.extractPatientData(rawInput);
+        Map<String, Object> extractedData = aiExtractionService.extractPatientData(rawInput);
 
         String symptoms = (String) extractedData.getOrDefault("symptoms", "");
         String vitals = (String) extractedData.getOrDefault("vitals", "");
@@ -181,7 +181,7 @@ public class PatientService {
 
         String aiPriority = "YELLOW";
         try {
-            Map<String, Object> aiData = geminiService.extractPatientData(combinedInput);
+            Map<String, Object> aiData = aiExtractionService.extractPatientData(combinedInput);
             aiPriority = (String) aiData.getOrDefault("priority", "YELLOW");
         } catch (Exception e) {
             /* fallback */ }
