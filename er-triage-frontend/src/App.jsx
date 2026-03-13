@@ -6,7 +6,7 @@ import TaskManager from './components/TaskManager.jsx';
 import UserManagement from './components/UserManagement.jsx';
 import Analytics from './components/Analytics.jsx';
 import Login from './components/Login.jsx';
-import { getStoredToken, getStoredUser, clearAuth } from './api/authApi.js';
+import { getStoredToken, getStoredUser, clearAuth, fetchCurrentUser } from './api/authApi.js';
 
 export default function App() {
     const [user, setUser] = useState(getStoredUser);
@@ -39,6 +39,30 @@ export default function App() {
 
     useEffect(() => {
         return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
+    }, []);
+
+    useEffect(() => {
+        const token = getStoredToken();
+        if (!token) return;
+
+        let isMounted = true;
+        // Validate token at startup so stale localStorage auth cannot leave user in a broken empty state.
+        fetchCurrentUser(token)
+            .then((currentUser) => {
+                if (!isMounted) return;
+                setUser(currentUser);
+                setIsAuthenticated(true);
+            })
+            .catch(() => {
+                if (!isMounted) return;
+                clearAuth();
+                setUser(null);
+                setIsAuthenticated(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const handlePointerMove = useCallback((event) => {

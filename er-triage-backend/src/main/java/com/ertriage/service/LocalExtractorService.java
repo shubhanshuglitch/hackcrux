@@ -30,12 +30,22 @@ public class LocalExtractorService {
     }
 
     private String extractName(String text) {
-        Pattern namePattern = Pattern.compile(
+        Pattern prefixedNamePattern = Pattern.compile(
                 "(?:patient|name is|name:|mr\\.?|mrs\\.?|ms\\.?|dr\\.?)\\s+([A-Z][a-z]+(?:\\s[A-Z][a-z]+)?)",
                 Pattern.CASE_INSENSITIVE);
-        Matcher m = namePattern.matcher(text);
-        if (m.find())
-            return m.group(1);
+        Matcher prefixed = prefixedNamePattern.matcher(text);
+        if (prefixed.find()) {
+            return prefixed.group(1).trim();
+        }
+
+        // Common intake format: "First Last, 58 years old, ..."
+        Pattern leadingNamePattern = Pattern.compile(
+                "^\\s*([A-Z][a-z]+(?:\\s+[A-Z][a-z]+){0,2})\\s*(?:,|\\s+-\\s+|\\s+age\\b|\\s+\\d{1,3}\\b)");
+        Matcher leading = leadingNamePattern.matcher(text);
+        if (leading.find()) {
+            return leading.group(1).trim();
+        }
+
         return "Unknown";
     }
 

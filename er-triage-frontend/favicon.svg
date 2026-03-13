@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="ER Triage">
+  <defs>
+    <linearGradient id="coreGradV4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f1d3b"/>
+      <stop offset="100%" stop-color="#184d79"/>
+    </linearGradient>
+    <linearGradient id="edgeGradV4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7ee1ff"/>
+      <stop offset="100%" stop-color="#6d8cff"/>
+    </linearGradient>
+    <linearGradient id="pulseGradV4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff8f70"/>
+      <stop offset="100%" stop-color="#ff4d6d"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="64" cy="64" r="58" fill="url(#coreGradV4)"/>
+  <circle cx="64" cy="64" r="52" fill="none" stroke="url(#edgeGradV4)" stroke-width="4" opacity="0.9"/>
+  <circle cx="64" cy="64" r="43" fill="#eef6ff" fill-opacity="0.12"/>
+  <path d="M23 70h15l8-13 13 24 9-19h37" fill="none" stroke="url(#pulseGradV4)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M63 33v14M56 40h14" fill="none" stroke="#d6f3ff" stroke-width="3.2" stroke-linecap="round" opacity="0.95"/>
+  <text x="64" y="104" text-anchor="middle" fill="#d8eeff" font-size="16" font-weight="800" letter-spacing="1.5">ER</text>
+</svg>

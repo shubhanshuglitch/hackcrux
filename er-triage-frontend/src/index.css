@@ -36,8 +36,36 @@
 }
 
 .login-logo {
-  font-size: 48px;
+  width: 102px;
+  height: 102px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 28px;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.98), rgba(240, 248, 255, 0.98));
+  border: 1px solid rgba(26, 72, 106, 0.2);
+  box-shadow: 0 12px 30px rgba(16, 53, 80, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  position: relative;
+  overflow: hidden;
+  animation: logoFloat 4.2s ease-in-out infinite;
   margin-bottom: 12px;
+}
+
+.login-logo::after {
+  content: '';
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.45), transparent 62%);
+  top: -54px;
+  left: -40px;
+  pointer-events: none;
+}
+
+@keyframes logoFloat {
+  0%,
+  100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
 
 .login-header h1 {
@@ -765,17 +793,75 @@ h5 {
 .header-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border: none;
-  border-radius: 8px;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid rgba(47, 111, 122, 0.18);
+  border-radius: 12px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
-  background: white;
-  color: #4a5f7f;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+  background: linear-gradient(135deg, #ffffff 0%, #f3f8fc 100%);
+  color: #2f5f7b;
+  box-shadow: 0 8px 20px rgba(33, 87, 118, 0.1);
+}
+
+.header-btn:hover {
+  transform: translateY(-1px);
+}
+
+.header-btn .btn-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(47, 111, 122, 0.2);
+  background: linear-gradient(135deg, rgba(47, 111, 122, 0.08), rgba(39, 162, 183, 0.08));
+  color: #2c7087;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-btn .btn-icon svg {
+  display: block;
+}
+
+.find-btn:hover {
+  border-color: rgba(47, 111, 122, 0.3);
+  box-shadow: 0 10px 24px rgba(47, 111, 122, 0.16);
+}
+
+.notif-btn {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.notif-btn .btn-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+}
+
+.signout-btn {
+  border-color: rgba(42, 92, 126, 0.34);
+  color: #1f4f71;
+  background: linear-gradient(135deg, #eef6fb 0%, #ddebf6 100%);
+}
+
+.signout-btn .btn-icon {
+  border-color: rgba(42, 92, 126, 0.4);
+  color: #24638c;
+  background: linear-gradient(135deg, rgba(95, 159, 201, 0.2), rgba(228, 243, 252, 0.88));
+}
+
+.signout-btn:hover {
+  border-color: rgba(42, 92, 126, 0.52);
+  box-shadow: 0 10px 24px rgba(42, 92, 126, 0.2);
 }
 
 .record-ripple-container {
@@ -3655,6 +3741,98 @@ h5 {
   box-shadow: 0 0 10px rgba(30, 90, 122, 0.15);
 }
 
+.retriage-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.retriage-preview-card {
+  border: 1px solid rgba(105, 149, 191, 0.28);
+  border-radius: 12px;
+  background: rgba(14, 23, 46, 0.6);
+  padding: 12px;
+}
+
+.retriage-preview-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9dc7ea;
+  margin-bottom: 8px;
+}
+
+.retriage-preview-row {
+  font-size: 12px;
+  color: #d8e8f7;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.retriage-result {
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(105, 149, 191, 0.3);
+  background: rgba(10, 20, 39, 0.66);
+}
+
+.retriage-result-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #d7ecff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.retriage-priority-shift {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  margin-bottom: 10px;
+}
+
+.retriage-priority-shift .shift-arrow {
+  opacity: 0.9;
+}
+
+.retriage-result-row {
+  font-size: 12px;
+  color: #d8e8f7;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.retriage-situation {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 700;
+  border: 1px solid rgba(105, 149, 191, 0.24);
+  background: rgba(240, 248, 255, 0.08);
+  color: #e5f3ff;
+}
+
+.retriage-result.priority-RED {
+  border-color: rgba(229, 161, 169, 0.52);
+}
+
+.retriage-result.priority-YELLOW {
+  border-color: rgba(230, 192, 135, 0.55);
+}
+
+.retriage-result.priority-GREEN {
+  border-color: rgba(107, 191, 145, 0.55);
+}
+
 .retriage-actions {
   display: flex;
   gap: 12px;
@@ -4634,10 +4812,6 @@ h5 {
 }
 
 /* --- Notifications --- */
-.notif-btn {
-  position: relative;
-}
-
 .notif-badge {
   position: absolute;
   top: -4px;
@@ -4907,16 +5081,16 @@ h5 {
 
 /* Header */
 .header-logo-badge {
-  width: 54px;
-  height: 54px;
-  border-radius: 15px;
-  background: linear-gradient(145deg, #2f6f7a 0%, #3f8894 100%);
-  border: 1px solid rgba(38, 96, 106, 0.34);
-  box-shadow: 0 12px 30px rgba(47, 111, 122, 0.3), inset 0 0 18px rgba(216, 243, 246, 0.22);
+  width: 68px;
+  height: 68px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #ffffff 0%, #edf5fc 100%);
+  border: 1px solid rgba(26, 72, 106, 0.24);
+  box-shadow: 0 12px 30px rgba(16, 53, 80, 0.16), inset 0 0 16px rgba(255, 255, 255, 0.45);
 }
 
 .logo-icon {
-  color: #eefbfc;
+  color: #1f4f71;
 }
 
 .header-title-main {
@@ -6120,87 +6294,60 @@ h5 {
   }
 }
 
-/* SCROLLING FIX */
-/* === CRITICAL FIX === */
-.kanban-col {
-  display: flex;
-  flex-direction: column;
+/* ========================================
+   HEADER ICON REFINEMENT (LATEST)
+   ======================================== */
+.header-left {
+  gap: 20px;
+}
+
+.header-logo-badge {
+  width: auto;
   height: auto;
-  min-height: 520px;
-  overflow: visible;           /* Clip overflow at column level */
-  border: 2px solid rgba(72, 116, 146, 0.22);
-  border-radius: 12px;
-  box-shadow: 0 10px 24px rgba(26, 58, 82, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.75);
-  background: linear-gradient(180deg,
-    rgba(241, 247, 251, 0.96) 0%,
-    rgba(229, 239, 246, 0.93) 100%);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.logo-icon {
   position: relative;
-}
-
-.col-header {
-  padding: 12px;
-  border-bottom: 1px solid rgba(30, 90, 122, 0.12);
-  backdrop-filter: blur(4px);
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: white;
-  flex-shrink: 0;             /* Header never shrinks */
-}
-
-.col-body {
-  flex: 1;
-  min-height: 0;        /* critical for flex scrolling */
-  overflow-y: auto;     /* scroll happens here */
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.delete-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.35);
-
-  display: flex;
-  justify-content: center;
+  display: inline-flex;
   align-items: center;
-
-  z-index: 9999;
+  justify-content: center;
+  color: #ffffff;
+  filter: drop-shadow(0 8px 14px rgba(16, 53, 80, 0.28));
 }
 
-.delete-modal {
-  background: white;
-  padding: 22px;
-  border-radius: 10px;
-  width: 320px;
-  text-align: center;
-
-  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+.logo-icon::before {
+  content: '';
+  position: absolute;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(126, 225, 255, 0.35), rgba(255, 255, 255, 0));
+  z-index: -1;
 }
 
-.delete-actions {
-  margin-top: 16px;
-  display: flex;
-  justify-content: space-between;
+.notif-btn .btn-icon {
+  background: linear-gradient(145deg, #fff3b0 0%, #ffd166 55%, #ffb703 100%);
+  border-color: rgba(203, 128, 0, 0.48);
+  color: #8a4f00;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
-.delete-cancel {
-  background: #e5e7eb;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
+.notif-btn:hover .btn-icon {
+  transform: translateY(-1px) scale(1.03);
 }
 
-.delete-confirm {
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
+@media (max-width: 900px) {
+  .logo-icon::before {
+    width: 64px;
+    height: 64px;
+  }
+
+  .header-left {
+    gap: 14px;
+  }
 }
