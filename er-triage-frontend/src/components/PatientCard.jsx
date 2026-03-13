@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+
 import { dismissPatient, dischargePatient, handoffPatient } from '../api/patientApi.js';
 import PatientTimeline from './PatientTimeline.jsx';
 import PatientDetailModal from './PatientDetailModal.jsx';
@@ -6,6 +6,7 @@ import PatientDetailModal from './PatientDetailModal.jsx';
 import heartRateIcon from '../assets/heart-rate.png';
 import retriageIcon from '../assets/arrow-counterclockwise-12-filled_.png';
 import collapseIcon from '../assets/arrow-bottom_.png';
+import React, { useState, useEffect } from 'react';
 
 const SLA_MS = { RED: 5 * 60 * 1000, YELLOW: 15 * 60 * 1000, GREEN: 45 * 60 * 1000 };
 
@@ -20,6 +21,7 @@ function parseBp(text) { const m = text.match(/(\d{2,3})\s*\/\s*(\d{2,3})/); ret
 function parseHeartRate(text) { const m = text.match(/(?:heart rate|hr|pulse)\s*[:=]?\s*(\d{2,3})/i); return m ? Number(m[1]) : null; }
 function parseSpo2(text) { const m = text.match(/(?:spo2|oxygen(?:\s+saturation)?)\s*[:=]?\s*(\d{2,3})\s*%?/i); return m ? Number(m[1]) : null; }
 function formatDuration(ms) { const s = Math.max(0, Math.floor(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
+
 
 function buildTriageExplanation(patient) {
     const combined = `${patient.symptoms || ''} ${patient.vitals || ''} ${patient.rawInput || ''}`.toLowerCase();
@@ -58,13 +60,21 @@ function getSlaStatus(patient, nowTs) {
 }
 
 // ── collapsed and onToggleCollapse are now controlled by KanbanBoard ─────────
-export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Date.now(), onDragStart, onDragEnd, collapsed, onToggleCollapse }) {
+function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, collapsed, onToggleCollapse }) {
+
+    const [nowTs, setNowTs] = useState(Date.now());
+
+useEffect(() => {
+    const timer = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => clearInterval(timer);
+}, []);
 // ────────────────────────────────────────────────────────────────────────────
     const [showActions, setShowActions] = useState(false);
     const [actionType, setActionType] = useState(null);
     const [actionNotes, setActionNotes] = useState('');
     const [actionDept, setActionDept] = useState('ICU');
     const [showDetail, setShowDetail] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     // NOTE: `collapsed` is no longer local state — it comes from props
 
     const handleDismiss = async () => {
@@ -147,7 +157,13 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
                             />
                         </button>
                     )}
-                    <button className="card-dismiss" onClick={handleDismiss} title="Dismiss" id={`dismiss-${patient.id}`}>✕</button>
+                    <button
+  className="card-dismiss"
+  onClick={() => setShowDeleteConfirm(true)}
+  title="Dismiss"
+>
+  ✕
+</button>
                 </div>
             </div>
 
@@ -268,6 +284,39 @@ export default function PatientCard({ patient, onDismiss, onRetriage, nowTs = Da
             )}
 
             {showDetail && <PatientDetailModal patient={patient} onClose={() => setShowDetail(false)} />}
+                
+
+                {showDeleteConfirm && (
+  <div className="delete-overlay">
+    <div className="delete-modal">
+
+      <h3>Delete Patient</h3>
+      <p>Are you sure you want to delete this patient?</p>
+
+      <div className="delete-actions">
+        <button
+          className="delete-cancel"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          No
+        </button>
+
+        <button
+          className="delete-confirm"
+          onClick={() => {
+            setShowDeleteConfirm(false);
+            handleDismiss();
+          }}
+        >
+          Yes
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
         </div>
     );
 }
+
+export default React.memo(PatientCard);

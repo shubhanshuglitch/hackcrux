@@ -208,24 +208,25 @@ public class PatientService {
         return toDTO(saved);
     }
 
-    public PatientDTO updatePriority(String id, String newPriorityStr) {
-        Patient patient = patientRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
 
-        String oldPriority = patient.getPriority() != null ? patient.getPriority().name() : "GREEN";
-        Patient.Priority newPriority = Patient.Priority.valueOf(newPriorityStr);
+  public PatientDTO updatePriority(String id, String newPriorityStr) {
+    Patient patient = patientRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
 
-        patient.setPriority(newPriority);
-        Patient saved = patientRepository.save(patient);
+    String oldPriority = patient.getPriority() != null ? patient.getPriority().name() : "GREEN";
+    Patient.Priority newPriority = Patient.Priority.valueOf(newPriorityStr);
 
-        if (!oldPriority.equals(newPriority.name())) {
-            logEvent(saved.getId(), PatientEvent.EventType.PRIORITY_CHANGE,
-                    "Priority changed from " + oldPriority + " to " + newPriority.name() + ".",
-                    oldPriority, newPriority.name(), "Staff (Manual)");
-        }
+    patient.setPriority(newPriority);
+    Patient saved = patientRepository.save(patient);
 
-        return toDTO(saved);
+    if (!oldPriority.equals(newPriority.name())) {
+        logEvent(saved.getId(), PatientEvent.EventType.PRIORITY_CHANGE,
+                "Priority changed via drag-and-drop from " + oldPriority + " to " + newPriority.name(),
+                oldPriority, newPriority.name(), "Staff (Manual)");
     }
+
+    return toDTO(saved);
+}
 
     private void logEvent(String patientId, PatientEvent.EventType type,
             String description, String oldPriority, String newPriority, String performedBy) {
@@ -269,4 +270,6 @@ public class PatientService {
         }
         return alphaTokens >= 1;
     }
+
+
 }
