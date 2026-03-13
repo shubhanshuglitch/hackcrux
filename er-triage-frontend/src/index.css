@@ -3853,8 +3853,7 @@ h5 {
 
 .retriage-actions .retriage-submit {
   background: var(--gradient-primary);
-  border: 2px solid;
-  border-image: var(--gradient-primary) 1;
+  border: 2px solid #5f7892;
   color: white;
   box-shadow: 0 6px 20px var(--blue-glow);
 }
@@ -3862,12 +3861,13 @@ h5 {
 .retriage-actions .retriage-submit:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px var(--blue-glow);
+  border-color: #ffffff;
 }
 
 .retriage-actions .retriage-cancel {
   background: rgba(255, 71, 87, 0.08);
   border: 2px solid rgba(255, 71, 87, 0.3);
-  color: var(--text-primary);
+  color: #ffffff;
 }
 
 .retriage-actions .retriage-cancel:hover {

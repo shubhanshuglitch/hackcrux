@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchPatients, retriagePatient, updatePatientPriority } from '../api/patientApi.js';
 import PatientCard from './PatientCard.jsx';
 import ReTriageModal from './ReTriageModal.jsx';
-import { clearAuth } from '../api/authApi.js';
 
 const POLL_INTERVAL_MS = 4000;
 // ── NEW: localStorage key for persisting collapse state ──────────────────────
@@ -46,7 +45,7 @@ function saveCollapsedCards(state) {
 }
 // ────────────────────────────────────────────────────────────────────────────
 
-export default function KanbanBoard({ newPatient, onPatientsChange }) {
+export default function KanbanBoard({ newPatient, onPatientsChange, highlightPatientId, onHighlighted }) {
     const [patients, setPatients] = useState([]);
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [nowTs, setNowTs] = useState(Date.now());
@@ -83,15 +82,8 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
             );
             setPatients(merged);
             setLastUpdated(new Date());
-            if (onPatientsChange) onPatientsChange(data);
-        } catch (err) {
-            console.warn('Polling error:', err.message);
-            // If auth is stale/invalid, force a clean login flow instead of showing an empty board.
-            if (err.message?.includes('401')) {
-                clearAuth();
-                window.location.reload();
-            }
-        }
+            if (onPatientsChange) onPatientsChange(merged);
+        } catch (err) { console.warn('Polling error:', err.message); }
     }, [onPatientsChange]);
 
     useEffect(() => {
@@ -100,6 +92,10 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
         return () => clearInterval(interval);
     }, [loadPatients]);
 
+    useEffect(() => {
+        const clock = setInterval(() => setNowTs(Date.now()), 1000);
+        return () => clearInterval(clock);
+    }, []);
 
     useEffect(() => {
         if (newPatient) {
@@ -109,6 +105,18 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
             });
         }
     }, [newPatient]);
+
+    useEffect(() => {
+        if (highlightPatientId && patients.length > 0) {
+            const el = document.getElementById(`patient-${highlightPatientId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('highlight-pulse');
+                setTimeout(() => el.classList.remove('highlight-pulse'), 2000);
+                if (onHighlighted) onHighlighted();
+            }
+        }
+    }, [highlightPatientId, patients, onHighlighted]);
 
     const handleDismiss = (id) => {
         setPatients(prev => prev.filter(p => p.id !== id));
@@ -122,14 +130,8 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
 
     const handleRetriage = (patient) => setReTriageModal(patient);
     const handleReTriageSubmit = async (id, symptoms, vitals) => {
-        const updated = await retriagePatient(id, symptoms, vitals);
-        setPatients(prev => {
-            const next = prev.map(p => (p.id === id ? updated : p));
-            if (onPatientsChange) onPatientsChange(next);
-            return next;
-        });
+        await retriagePatient(id, symptoms, vitals);
         await loadPatients();
-        return updated;
     };
 
     const handleDragStart = useCallback((patientId) => {
@@ -211,10 +213,7 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
 
             <div className="kanban-grid">
                 {COLUMNS.map(col => {
-                    const colPatients = React.useMemo(
-    () => patients.filter(p => p.priority === col.key),
-    [patients, col.key]
-);
+                    const colPatients = patients.filter(p => p.priority === col.key);
                     return (
                         <div
                             key={col.key}
@@ -243,6 +242,7 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                                         <PatientCard
                                             key={patient.id}
                                             patient={patient}
+                                            nowTs={nowTs}
                                             onDismiss={handleDismiss}
                                             onRetriage={handleRetriage}
                                             onDragStart={handleDragStart}

@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { searchPatients } from '../api/patientApi.js';
 import { fetchAnalytics } from '../api/analyticsApi.js';
-import BrandMark from './BrandMark.jsx';
 
-export default function Header({ patients, user, onSignOut }) {
+export default function Header({ patients, user, onSignOut, onPatientSearchSelect }) {
     const redCount = patients.filter(p => p.priority === 'RED').length;
     const amberCount = patients.filter(p => p.priority === 'YELLOW').length;
     const greenCount = patients.filter(p => p.priority === 'GREEN').length;
@@ -14,6 +13,7 @@ export default function Header({ patients, user, onSignOut }) {
     const [searchResults, setSearchResults] = useState([]);
     const [searching, setSearching] = useState(false);
     const searchInputRef = useRef(null);
+    const searchModalRef = useRef(null);
     const debounceRef = useRef(null);
 
     const [showNotifications, setShowNotifications] = useState(false);
@@ -25,6 +25,19 @@ export default function Header({ patients, user, onSignOut }) {
         if (showSearch && searchInputRef.current) {
             searchInputRef.current.focus();
         }
+    }, [showSearch]);
+
+    useEffect(() => {
+        if (!showSearch) return;
+
+        const handleClickOutside = (event) => {
+            if (searchModalRef.current && !searchModalRef.current.contains(event.target)) {
+                setShowSearch(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showSearch]);
 
     useEffect(() => {
@@ -75,6 +88,8 @@ export default function Header({ patients, user, onSignOut }) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             el.classList.add('highlight-pulse');
             setTimeout(() => el.classList.remove('highlight-pulse'), 2000);
+        } else if (onPatientSearchSelect) {
+            onPatientSearchSelect(patientId);
         }
         setShowSearch(false);
         setSearchQuery('');
@@ -83,32 +98,17 @@ export default function Header({ patients, user, onSignOut }) {
 
     const priorityColors = { RED: '#ef4444', YELLOW: '#f59e0b', GREEN: '#10b981' };
 
-    const SearchIcon = () => (
-        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
-            <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="2" />
-            <path d="M16 16L21 21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-    );
-
-    const BellIcon = () => (
-        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+    const HospitalMark = () => (
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
             <defs>
-                <linearGradient id="notif-bell-grad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#ffe066" />
-                    <stop offset="100%" stopColor="#ffb703" />
+                <linearGradient id="hospital-mark-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#d8f3f6" />
+                    <stop offset="100%" stopColor="#a8dbe2" />
                 </linearGradient>
             </defs>
-            <path d="M12 4.4a4.2 4.2 0 0 1 4.2 4.2v2.15a4.8 4.8 0 0 0 1.36 3.35l.95.99H5.47l.95-.99a4.8 4.8 0 0 0 1.36-3.35V8.6A4.2 4.2 0 0 1 12 4.4Z" fill="url(#notif-bell-grad)" stroke="#b46900" strokeWidth="1.15" strokeLinejoin="round" />
-            <path d="M10 18a2 2 0 0 0 4 0" fill="none" stroke="#b46900" strokeWidth="1.45" strokeLinecap="round" />
-            <circle cx="15.7" cy="7.1" r="1.35" fill="#ff4d6d" />
-        </svg>
-    );
-
-    const SignOutIcon = () => (
-        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
-            <path d="M9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            <path d="M13 8l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M9 12h8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <rect x="3" y="2.6" width="18" height="18.8" rx="5" fill="url(#hospital-mark-grad)" opacity="0.32" />
+            <path d="M12 5.8v10.6M6.7 11.1h10.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path d="M5.2 7.1a7.6 7.6 0 0 0 0 9.8M18.8 7.1a7.6 7.6 0 0 1 0 9.8" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.8" />
         </svg>
     );
 
@@ -116,7 +116,7 @@ export default function Header({ patients, user, onSignOut }) {
         <header className="header-new">
             <div className="header-left">
                 <div className="header-logo-badge">
-                    <span className="logo-icon"><BrandMark size={62} /></span>
+                    <span className="logo-icon"><HospitalMark /></span>
                 </div>
                 <div className="header-title-wrap">
                     <h1 className="header-title-main">ER TRIAGE SPRINT</h1>
@@ -144,22 +144,22 @@ export default function Header({ patients, user, onSignOut }) {
 
             <div className="header-right">
                 <button className="header-btn find-btn" onClick={() => setShowSearch(!showSearch)}>
-                    <span className="btn-icon"><SearchIcon /></span>
+                    <span className="btn-icon">🔍</span>
                     Find Patient
                 </button>
                 <button className="header-btn notif-btn" onClick={handleOpenNotifications}>
-                    <span className="btn-icon"><BellIcon /></span>
+                    <span className="btn-icon">🔔</span>
                     {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
                 </button>
                 <button className="header-btn signout-btn" onClick={onSignOut}>
-                    <span className="btn-icon"><SignOutIcon /></span>
+                    <span className="btn-icon">→</span>
                     Sign Out{user ? ` (${user.username || user.fullName || ''})` : ''}
                 </button>
             </div>
 
             {showSearch && (
-                <div className="search-overlay" onClick={() => setShowSearch(false)}>
-                    <div className="search-modal" onClick={e => e.stopPropagation()}>
+                <div className="search-overlay">
+                    <div className="search-modal" ref={searchModalRef}>
                         <div className="search-input-wrapper">
                             <span className="search-icon">🔍</span>
                             <input ref={searchInputRef} className="search-input" type="text"

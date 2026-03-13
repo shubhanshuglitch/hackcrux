@@ -6,7 +6,7 @@ import TaskManager from './components/TaskManager.jsx';
 import UserManagement from './components/UserManagement.jsx';
 import Analytics from './components/Analytics.jsx';
 import Login from './components/Login.jsx';
-import { getStoredToken, getStoredUser, clearAuth, fetchCurrentUser } from './api/authApi.js';
+import { getStoredToken, getStoredUser, clearAuth } from './api/authApi.js';
 
 export default function App() {
     const [user, setUser] = useState(getStoredUser);
@@ -14,6 +14,7 @@ export default function App() {
     const [patients, setPatients] = useState([]);
     const [newPatient, setNewPatient] = useState(null);
     const [activeTab, setActiveTab] = useState('triage');
+    const [targetPatientId, setTargetPatientId] = useState(null);
     const shellRef = useRef(null);
     const frameRef = useRef(null);
 
@@ -41,29 +42,14 @@ export default function App() {
         return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
     }, []);
 
-    useEffect(() => {
-        const token = getStoredToken();
-        if (!token) return;
+    const handlePatientSearchSelect = (patientId) => {
+        setTargetPatientId(patientId);
+        setActiveTab('triage');
+    };
 
-        let isMounted = true;
-        // Validate token at startup so stale localStorage auth cannot leave user in a broken empty state.
-        fetchCurrentUser(token)
-            .then((currentUser) => {
-                if (!isMounted) return;
-                setUser(currentUser);
-                setIsAuthenticated(true);
-            })
-            .catch(() => {
-                if (!isMounted) return;
-                clearAuth();
-                setUser(null);
-                setIsAuthenticated(false);
-            });
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
+    const handleTargetPatientScrolled = () => {
+        setTargetPatientId(null);
+    };
 
     const handlePointerMove = useCallback((event) => {
         if (!shellRef.current) return;
@@ -91,7 +77,12 @@ export default function App() {
                 <span className="particle p4"></span>
                 <span className="particle p5"></span>
             </div>
-            <Header patients={patients} user={user} onSignOut={handleSignOut} />
+            <Header 
+                patients={patients} 
+                user={user} 
+                onSignOut={handleSignOut} 
+                onPatientSearchSelect={handlePatientSearchSelect}
+            />
             <main className={`main-layout ${activeTab === 'triage' ? 'triage-layout' : ''}`}>
                 <div className="tab-navigation">
                     <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
@@ -106,7 +97,12 @@ export default function App() {
                         <VoiceCapture onPatientAdded={handlePatientAdded} />
                         <div className="content-wrapper">
                             <div className="left-section">
-                                <KanbanBoard newPatient={newPatient} onPatientsChange={handlePatientsChange} />
+                                <KanbanBoard 
+                                    newPatient={newPatient} 
+                                    onPatientsChange={handlePatientsChange}
+                                    highlightPatientId={targetPatientId}
+                                    onHighlighted={handleTargetPatientScrolled}
+                                />
                             </div>
                             <div className="right-section">
                                 <TaskManager />
