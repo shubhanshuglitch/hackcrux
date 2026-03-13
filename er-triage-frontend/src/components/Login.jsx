@@ -9,7 +9,8 @@ export default function Login({ onLogin }) {
     fullName: '',
     email: '',
     role: 'DOCTOR',
-    department: 'Emergency'
+    department: 'Emergency',
+    specialization: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,7 +34,8 @@ export default function Login({ onLogin }) {
           fullName: formData.fullName,
           email: formData.email,
           role: formData.role,
-          department: formData.department
+          department: formData.department,
+          specialization: formData.role === 'DOCTOR' ? formData.specialization : null
         });
         storeAuth(data.token, data.user);
         onLogin(data.user);
@@ -111,6 +113,24 @@ export default function Login({ onLogin }) {
                   <option value="Pediatrics">Pediatrics</option>
                 </select>
               </div>
+              {formData.role === 'DOCTOR' && (
+                <div className="form-group">
+                  <label>Specialization</label>
+                  <select name="specialization" value={formData.specialization} onChange={handleChange}>
+                    <option value="">— Select Specialization —</option>
+                    <option value="Cardiologist">Cardiologist</option>
+                    <option value="Pulmonologist">Pulmonologist</option>
+                    <option value="Neurologist">Neurologist</option>
+                    <option value="Orthopedic Surgeon">Orthopedic Surgeon</option>
+                    <option value="Gastroenterologist">Gastroenterologist</option>
+                    <option value="General Surgeon">General Surgeon</option>
+                    <option value="Endocrinologist">Endocrinologist</option>
+                    <option value="Allergist">Allergist</option>
+                    <option value="Emergency Medicine">Emergency Medicine</option>
+                    <option value="General Physician">General Physician</option>
+                  </select>
+                </div>
+              )}
             </>
           )}
 

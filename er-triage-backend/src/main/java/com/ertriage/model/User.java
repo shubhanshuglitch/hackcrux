@@ -25,6 +25,8 @@ public class User {
 
     private String department;
 
+    private String specialization;
+
     private Boolean active;
 
     private LocalDateTime createdAt;
@@ -38,7 +40,7 @@ public class User {
     }
 
     public User(String id, String username, String fullName, String email, String password, Role role,
-            String department, Boolean active, LocalDateTime createdAt, LocalDateTime lastLogin) {
+            String department, String specialization, Boolean active, LocalDateTime createdAt, LocalDateTime lastLogin) {
         this.id = id;
         this.username = username;
         this.fullName = fullName;
@@ -46,6 +48,7 @@ public class User {
         this.password = password;
         this.role = role;
         this.department = department;
+        this.specialization = specialization;
         this.active = active;
         this.createdAt = createdAt;
         this.lastLogin = lastLogin;
@@ -77,6 +80,10 @@ public class User {
 
     public String getDepartment() {
         return department;
+    }
+
+    public String getSpecialization() {
+        return specialization;
     }
 
     public Boolean getActive() {
@@ -119,6 +126,10 @@ public class User {
         this.department = department;
     }
 
+    public void setSpecialization(String specialization) {
+        this.specialization = specialization;
+    }
+
     public void setActive(Boolean active) {
         this.active = active;
     }
@@ -143,6 +154,7 @@ public class User {
         private String password;
         private Role role;
         private String department;
+        private String specialization;
         private Boolean active;
         private LocalDateTime createdAt;
         private LocalDateTime lastLogin;
@@ -182,6 +194,11 @@ public class User {
             return this;
         }
 
+        public UserBuilder specialization(String s) {
+            this.specialization = s;
+            return this;
+        }
+
         public UserBuilder active(Boolean a) {
             this.active = a;
             return this;
@@ -198,7 +215,7 @@ public class User {
         }
 
         public User build() {
-            return new User(id, username, fullName, email, password, role, department, active, createdAt, lastLogin);
+            return new User(id, username, fullName, email, password, role, department, specialization, active, createdAt, lastLogin);
         }
     }
 }

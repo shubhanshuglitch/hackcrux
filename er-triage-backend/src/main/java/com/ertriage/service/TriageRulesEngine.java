@@ -25,9 +25,11 @@ public class TriageRulesEngine {
     // RED trigger keywords
     private static final List<String> RED_SYMPTOM_KEYWORDS = List.of(
             "chest pain", "chest pressure", "chest tightness",
-            "shortness of breath", "difficulty breathing", "can't breathe",
+            "shortness of breath", "difficulty breathing", "breathing difficulty", "respiratory distress",
+            "can't breathe",
             "cannot breathe", "dyspnea", "trouble breathing",
-            "cardiac arrest", "heart attack", "unconscious", "unresponsive",
+            "cardiac arrest", "heart attack", "heart failure", "congestive heart failure",
+            "unconscious", "unresponsive",
             "stroke", "facial droop", "arm weakness",
             "severe bleeding", "hemorrhage", "major trauma", "head injury",
             "anaphylaxis", "allergic reaction", "seizure", "convulsion",

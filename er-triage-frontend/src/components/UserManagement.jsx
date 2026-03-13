@@ -5,8 +5,9 @@ import { fetchUsers, createUser, updateUser, deleteUser } from '../api/userApi.j
 const ROLE_ICONS = { ADMIN: '👑', DOCTOR: '🩺', NURSE: '💉', RECEPTIONIST: '📋' };
 const ROLES = ['ALL', 'ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST'];
 const DEPARTMENTS = ['Emergency Medicine', 'Emergency Department', 'Administration', 'Front Desk', 'ICU', 'Surgery'];
+const SPECIALIZATIONS = ['Cardiologist', 'Pulmonologist', 'Neurologist', 'Orthopedic Surgeon', 'Gastroenterologist', 'General Surgeon', 'Endocrinologist', 'Allergist', 'Emergency Medicine', 'General Physician'];
 
-const emptyForm = { username: '', fullName: '', email: '', role: 'DOCTOR', department: 'Emergency Medicine', active: true };
+const emptyForm = { username: '', fullName: '', email: '', role: 'DOCTOR', department: 'Emergency Medicine', specialization: '', active: true };
 
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
@@ -56,6 +57,7 @@ export default function UserManagement() {
             email: user.email,
             role: user.role,
             department: user.department || 'Emergency Medicine',
+            specialization: user.specialization || '',
             active: user.active !== false,
         });
         setFormError('');
@@ -191,6 +193,15 @@ export default function UserManagement() {
                                     </select>
                                 </div>
                             </div>
+                            {formData.role === 'DOCTOR' && (
+                                <div className="form-group">
+                                    <label>Specialization</label>
+                                    <select name="specialization" value={formData.specialization} onChange={handleChange}>
+                                        <option value="">— Select Specialization —</option>
+                                        {SPECIALIZATIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                            )}
                             {editingUser && (
                                 <div className="form-group checkbox-group">
                                     <label>
@@ -232,6 +243,7 @@ export default function UserManagement() {
                             </div>
                             <div className="user-card-details">
                                 <span className={`user-detail-chip role-${user.role}`}>{user.role}</span>
+                                {user.role === 'DOCTOR' && user.specialization && <span className="user-detail-chip specialization-chip">🎯 {user.specialization}</span>}
                                 {user.department && <span className="user-detail-chip">{user.department}</span>}
                                 <span className="user-detail-chip">{user.active ? '🟢 Active' : '🔴 Inactive'}</span>
                             </div>

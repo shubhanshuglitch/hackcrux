@@ -1,6 +1,7 @@
 # Build outputs
 er-triage-backend/target/
 er-triage-backend/data/
+er-triage-backend/.env
 
 # Node modules
 er-triage-frontend/node_modules/

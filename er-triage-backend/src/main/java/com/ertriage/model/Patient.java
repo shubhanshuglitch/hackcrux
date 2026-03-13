@@ -21,6 +21,9 @@ public class Patient {
 
     private String rawInput;
 
+    private String assignedDoctorName;
+    private String assignedDoctorSpecialization;
+
     private LocalDateTime timestamp;
 
     public enum Priority {
@@ -31,7 +34,8 @@ public class Patient {
     }
 
     public Patient(String id, String name, Integer age, String symptoms, String vitals,
-            Priority priority, String rawInput, LocalDateTime timestamp) {
+            Priority priority, String rawInput, String assignedDoctorName, String assignedDoctorSpecialization,
+            LocalDateTime timestamp) {
         this.id = id;
         this.name = name;
         this.age = age;
@@ -39,6 +43,8 @@ public class Patient {
         this.vitals = vitals;
         this.priority = priority;
         this.rawInput = rawInput;
+        this.assignedDoctorName = assignedDoctorName;
+        this.assignedDoctorSpecialization = assignedDoctorSpecialization;
         this.timestamp = timestamp;
     }
 
@@ -68,6 +74,14 @@ public class Patient {
 
     public String getRawInput() {
         return rawInput;
+    }
+
+    public String getAssignedDoctorName() {
+        return assignedDoctorName;
+    }
+
+    public String getAssignedDoctorSpecialization() {
+        return assignedDoctorSpecialization;
     }
 
     public LocalDateTime getTimestamp() {
@@ -102,6 +116,14 @@ public class Patient {
         this.rawInput = rawInput;
     }
 
+    public void setAssignedDoctorName(String assignedDoctorName) {
+        this.assignedDoctorName = assignedDoctorName;
+    }
+
+    public void setAssignedDoctorSpecialization(String assignedDoctorSpecialization) {
+        this.assignedDoctorSpecialization = assignedDoctorSpecialization;
+    }
+
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
     }
@@ -118,6 +140,8 @@ public class Patient {
         private String vitals;
         private Priority priority;
         private String rawInput;
+        private String assignedDoctorName;
+        private String assignedDoctorSpecialization;
         private LocalDateTime timestamp;
 
         public PatientBuilder id(String id) {
@@ -155,13 +179,23 @@ public class Patient {
             return this;
         }
 
+        public PatientBuilder assignedDoctorName(String assignedDoctorName) {
+            this.assignedDoctorName = assignedDoctorName;
+            return this;
+        }
+
+        public PatientBuilder assignedDoctorSpecialization(String assignedDoctorSpecialization) {
+            this.assignedDoctorSpecialization = assignedDoctorSpecialization;
+            return this;
+        }
+
         public PatientBuilder timestamp(LocalDateTime timestamp) {
             this.timestamp = timestamp;
             return this;
         }
 
         public Patient build() {
-            return new Patient(id, name, age, symptoms, vitals, priority, rawInput, timestamp);
+            return new Patient(id, name, age, symptoms, vitals, priority, rawInput, assignedDoctorName, assignedDoctorSpecialization, timestamp);
         }
     }
 }

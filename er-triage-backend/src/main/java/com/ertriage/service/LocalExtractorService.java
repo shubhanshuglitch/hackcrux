@@ -103,11 +103,11 @@ public class LocalExtractorService {
     private String extractSymptoms(String text) {
         List<String> knownSymptoms = List.of(
                 "chest pain", "chest pressure", "chest tightness",
-                "shortness of breath", "difficulty breathing", "dyspnea",
+            "shortness of breath", "difficulty breathing", "breathing difficulty", "dyspnea",
                 "nausea", "vomiting", "fever", "headache", "dizziness",
                 "abdominal pain", "back pain", "leg pain", "arm pain",
                 "confusion", "weakness", "fatigue", "sweating", "diaphoretic",
-                "palpitations", "swelling", "edema", "rash", "laceration",
+            "palpitations", "heart failure", "swelling", "edema", "rash", "laceration",
                 "fracture", "bleeding", "seizure", "unconscious", "syncope",
                 "sore throat", "runny nose", "cough", "diarrhea", "constipation",
                 "trauma", "injury", "fall", "accident", "bruising");

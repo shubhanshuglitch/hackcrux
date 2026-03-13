@@ -13,6 +13,8 @@ public class PatientDTO {
     private String vitals;
     private String priority;
     private String rawInput;
+    private String assignedDoctorName;
+    private String assignedDoctorSpecialization;
     private LocalDateTime timestamp;
     private List<PatientEventDTO> timeline;
 
@@ -21,7 +23,8 @@ public class PatientDTO {
     }
 
     public PatientDTO(String id, String name, Integer age, String symptoms, String vitals,
-            String priority, String rawInput, LocalDateTime timestamp, List<PatientEventDTO> timeline) {
+        String priority, String rawInput, String assignedDoctorName, String assignedDoctorSpecialization,
+        LocalDateTime timestamp, List<PatientEventDTO> timeline) {
         this.id = id;
         this.name = name;
         this.age = age;
@@ -29,6 +32,8 @@ public class PatientDTO {
         this.vitals = vitals;
         this.priority = priority;
         this.rawInput = rawInput;
+        this.assignedDoctorName = assignedDoctorName;
+        this.assignedDoctorSpecialization = assignedDoctorSpecialization;
         this.timestamp = timestamp;
         this.timeline = timeline != null ? timeline : new ArrayList<>();
     }
@@ -38,7 +43,8 @@ public class PatientDTO {
                 patient.getId(), patient.getName(), patient.getAge(),
                 patient.getSymptoms(), patient.getVitals(),
                 patient.getPriority() != null ? patient.getPriority().name() : "GREEN",
-                patient.getRawInput(), patient.getTimestamp(), new ArrayList<>());
+                patient.getRawInput(), patient.getAssignedDoctorName(), patient.getAssignedDoctorSpecialization(),
+                patient.getTimestamp(), new ArrayList<>());
     }
 
     public String getId() {
@@ -67,6 +73,14 @@ public class PatientDTO {
 
     public String getRawInput() {
         return rawInput;
+    }
+
+    public String getAssignedDoctorName() {
+        return assignedDoctorName;
+    }
+
+    public String getAssignedDoctorSpecialization() {
+        return assignedDoctorSpecialization;
     }
 
     public LocalDateTime getTimestamp() {
@@ -103,6 +117,14 @@ public class PatientDTO {
 
     public void setRawInput(String rawInput) {
         this.rawInput = rawInput;
+    }
+
+    public void setAssignedDoctorName(String assignedDoctorName) {
+        this.assignedDoctorName = assignedDoctorName;
+    }
+
+    public void setAssignedDoctorSpecialization(String assignedDoctorSpecialization) {
+        this.assignedDoctorSpecialization = assignedDoctorSpecialization;
     }
 
     public void setTimestamp(LocalDateTime timestamp) {

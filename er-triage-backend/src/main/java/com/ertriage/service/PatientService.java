@@ -4,8 +4,10 @@ import com.ertriage.dto.PatientDTO;
 import com.ertriage.dto.PatientEventDTO;
 import com.ertriage.model.Patient;
 import com.ertriage.model.PatientEvent;
+import com.ertriage.model.User;
 import com.ertriage.repository.PatientEventRepository;
 import com.ertriage.repository.PatientRepository;
+import com.ertriage.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,15 +24,17 @@ public class PatientService {
     private final TriageRulesEngine triageRulesEngine;
     private final LocalExtractorService localExtractorService;
     private final PatientEventRepository eventRepository;
+    private final UserRepository userRepository;
 
     public PatientService(PatientRepository patientRepository, GeminiService geminiService,
             TriageRulesEngine triageRulesEngine, LocalExtractorService localExtractorService,
-            PatientEventRepository eventRepository) {
+            PatientEventRepository eventRepository, UserRepository userRepository) {
         this.patientRepository = patientRepository;
         this.geminiService = geminiService;
         this.triageRulesEngine = triageRulesEngine;
         this.localExtractorService = localExtractorService;
         this.eventRepository = eventRepository;
+        this.userRepository = userRepository;
     }
 
     public PatientDTO processAndSavePatient(String rawInput) {
@@ -64,10 +68,39 @@ public class PatientService {
                 .vitals(vitals).priority(priority).rawInput(rawInput)
                 .timestamp(LocalDateTime.now()).build();
 
+        // --- Doctor assignment logic ---
+        String recommendedSpec = (String) extractedData.getOrDefault("recommended_specialization", "Emergency Medicine");
+        List<User> activeDoctors = userRepository.findByRoleAndActiveTrue(User.Role.DOCTOR);
+        User assignedDoctor = null;
+
+        // Try exact specialization match (case-insensitive)
+        String specLower = recommendedSpec.toLowerCase();
+        for (User doc : activeDoctors) {
+            if (doc.getSpecialization() != null && doc.getSpecialization().toLowerCase().contains(specLower)) {
+                assignedDoctor = doc;
+                break;
+            }
+        }
+        // Fallback: assign the first available doctor
+        if (assignedDoctor == null && !activeDoctors.isEmpty()) {
+            assignedDoctor = activeDoctors.get(0);
+        }
+
+        if (assignedDoctor != null) {
+            patient.setAssignedDoctorName(assignedDoctor.getFullName());
+            patient.setAssignedDoctorSpecialization(
+                    assignedDoctor.getSpecialization() != null ? assignedDoctor.getSpecialization() : recommendedSpec);
+        } else {
+            patient.setAssignedDoctorName("Unassigned");
+            patient.setAssignedDoctorSpecialization(recommendedSpec);
+        }
+
         Patient saved = patientRepository.save(patient);
 
         logEvent(saved.getId(), PatientEvent.EventType.INTAKE,
-                "Patient admitted via voice triage. Priority: " + priority.name(),
+                "Patient admitted via voice triage. Priority: " + priority.name()
+                        + ". Assigned to: " + patient.getAssignedDoctorName()
+                        + " (" + patient.getAssignedDoctorSpecialization() + ")",
                 null, priority.name(), "System (AI Triage)");
 
         return toDTO(saved);
@@ -175,6 +208,26 @@ public class PatientService {
         return toDTO(saved);
     }
 
+
+  public PatientDTO updatePriority(String id, String newPriorityStr) {
+    Patient patient = patientRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
+
+    String oldPriority = patient.getPriority() != null ? patient.getPriority().name() : "GREEN";
+    Patient.Priority newPriority = Patient.Priority.valueOf(newPriorityStr);
+
+    patient.setPriority(newPriority);
+    Patient saved = patientRepository.save(patient);
+
+    if (!oldPriority.equals(newPriority.name())) {
+        logEvent(saved.getId(), PatientEvent.EventType.PRIORITY_CHANGE,
+                "Priority changed via drag-and-drop from " + oldPriority + " to " + newPriority.name(),
+                oldPriority, newPriority.name(), "Staff (Manual)");
+    }
+
+    return toDTO(saved);
+}
+
     private void logEvent(String patientId, PatientEvent.EventType type,
             String description, String oldPriority, String newPriority, String performedBy) {
         eventRepository.save(new PatientEvent(patientId, type, description, oldPriority, newPriority, performedBy));
@@ -218,19 +271,5 @@ public class PatientService {
         return alphaTokens >= 1;
     }
 
-    // ✅ Fix — replace the entire method with this
-public PatientDTO updatePriority(String id, String priority) {
-    Patient patient = patientRepository.findById(id)
-        .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
 
-    String oldPriority = patient.getPriority() != null ? patient.getPriority().name() : "GREEN";
-    patient.setPriority(Patient.Priority.valueOf(priority));
-    Patient saved = patientRepository.save(patient);
-
-    logEvent(saved.getId(), PatientEvent.EventType.PRIORITY_CHANGE,
-        "Priority changed via drag-and-drop from " + oldPriority + " to " + priority,
-        oldPriority, priority, "Staff");
-
-    return toDTO(saved);
-}
 }

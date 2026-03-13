@@ -4015,6 +4015,30 @@ h5 {
   color: #3d8a94;
 }
 
+.user-detail-chip.specialization-chip {
+  border-color: rgba(156, 39, 176, 0.3);
+  background: rgba(156, 39, 176, 0.1);
+  color: #ab47bc;
+  font-weight: 600;
+}
+
+/* Assigned Doctor on Patient Card */
+.assigned-doctor-field {
+  border-left: 3px solid rgba(156, 39, 176, 0.4);
+  padding-left: 10px;
+}
+
+.assigned-doctor-name {
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.assigned-doctor-spec {
+  color: #ab47bc;
+  font-size: 0.88em;
+  font-weight: 500;
+}
+
 .user-card-actions {
   display: flex;
   justify-content: flex-end;
