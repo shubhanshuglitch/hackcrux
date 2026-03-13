@@ -99,6 +99,147 @@ public class GeminiService implements AiExtractionService {
 
                     IMPORTANT: When in doubt between RED and YELLOW, choose RED.
 
+                    ADDITIONAL CLINICAL EXTRACTION RULES (STRICT):
+
+The following rules improve reliability when extracting vitals and determining priority.
+
+VITAL SIGN EXTRACTION — IMPORTANT
+
+The AI must detect and include ALL vital signs mentioned in the input, including:
+
+Blood Pressure (BP)
+Heart Rate / Pulse (HR)
+Temperature (Celsius OR Fahrenheit)
+SpO2 (oxygen saturation)
+Respiratory Rate (RR)
+
+Recognize the following formats:
+
+Blood Pressure examples:
+- BP 170/110
+- BP: 170/110
+- Blood pressure 170 over 110
+- blood pressure is 170/110
+
+Heart Rate examples:
+- HR 120
+- Pulse 120
+- heart rate 120 bpm
+- pulse 120
+
+Temperature examples (IMPORTANT):
+Temperature may be in Celsius OR Fahrenheit.
+
+Examples:
+- Temp 39C
+- Temperature 39°C
+- Temp 102F
+- Temperature 102°F
+- fever 102F
+
+If temperature is in Fahrenheit above 100.4°F → treat as fever.
+
+SpO2 examples:
+- SpO2 92%
+- oxygen saturation 92%
+- O2 sat 92%
+
+Respiratory rate examples:
+- RR 24
+- respiratory rate 24
+
+Always include these values in the "vitals" field exactly as found.
+
+--------------------------------------------------
+
+NEGATION HANDLING — VERY IMPORTANT
+
+If the clinical input explicitly denies a symptom, DO NOT treat it as present.
+
+Examples of negation:
+- no chest pain
+- denies chest pain
+- without chest pain
+- no shortness of breath
+- denies breathing difficulty
+
+These symptoms must NOT be used for priority classification.
+
+Example:
+Input: "no chest pain but BP 170/110"
+
+Correct interpretation:
+Symptoms → none related to chest pain
+Vitals → BP 170/110
+Priority → RED (due to BP)
+
+--------------------------------------------------
+
+RETRIAGE RULE
+
+If updated symptoms or vitals are provided, ALWAYS re-evaluate the triage priority from scratch.
+
+Ignore previous triage decisions.
+
+Example:
+Previous: chest pain
+Updated: no chest pain, BP 104/85
+
+Correct result:
+Priority should NOT remain RED unless another RED rule applies.
+
+--------------------------------------------------
+
+SEVERE VITAL SIGN OVERRIDE
+
+Even if symptoms appear mild, the following vitals MUST trigger RED priority:
+
+- BP > 160 systolic
+- BP < 90 systolic
+- Heart rate > 110 bpm
+- Heart rate < 50 bpm
+- SpO2 < 94%
+- Temperature > 104°F or > 40°C
+
+Vitals override symptom severity.
+
+--------------------------------------------------
+
+SPECIALIST SELECTION IMPROVEMENTS
+
+If multiple symptoms exist, choose the MOST life-threatening system.
+
+Examples:
+Chest pain + high BP → Cardiologist
+Breathing difficulty + low SpO2 → Pulmonologist
+Stroke symptoms → Neurologist
+Fracture + trauma → Orthopedic Surgeon
+
+If symptoms are unclear → General Physician.
+
+--------------------------------------------------
+
+DATA QUALITY RULE
+
+Never invent symptoms or vitals.
+
+If information is missing:
+- name → "Unknown"
+- age → null
+- vitals → "Not recorded"
+
+--------------------------------------------------
+
+OUTPUT REQUIREMENT
+
+Return ONLY the JSON object.
+
+Do NOT include:
+- explanations
+- markdown
+- code blocks
+- extra text
+
                     Clinical input: %s
                     """
                     .formatted(rawInput);
