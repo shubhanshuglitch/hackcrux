@@ -1,5 +1,4 @@
-
-import { dismissPatient, dischargePatient, handoffPatient } from '../api/patientApi.js';
+import { dischargePatient, handoffPatient } from '../api/patientApi.js';
 import PatientTimeline from './PatientTimeline.jsx';
 import PatientDetailModal from './PatientDetailModal.jsx';
 
@@ -59,28 +58,19 @@ function getSlaStatus(patient, nowTs) {
     };
 }
 
-// ── collapsed and onToggleCollapse are now controlled by KanbanBoard ─────────
 function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, collapsed, onToggleCollapse }) {
 
     const [nowTs, setNowTs] = useState(Date.now());
 
-useEffect(() => {
-    const timer = setInterval(() => setNowTs(Date.now()), 1000);
-    return () => clearInterval(timer);
-}, []);
-// ────────────────────────────────────────────────────────────────────────────
-    const [showActions, setShowActions] = useState(false);
+    useEffect(() => {
+        const timer = setInterval(() => setNowTs(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
     const [actionType, setActionType] = useState(null);
     const [actionNotes, setActionNotes] = useState('');
     const [actionDept, setActionDept] = useState('ICU');
     const [showDetail, setShowDetail] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    // NOTE: `collapsed` is no longer local state — it comes from props
-
-    const handleDismiss = async () => {
-        try { await dismissPatient(patient.id); if (onDismiss) onDismiss(patient.id); }
-        catch (err) { console.error('Failed to dismiss:', err); }
-    };
 
     const handleDischarge = async () => {
         try {
@@ -93,7 +83,6 @@ useEffect(() => {
         try {
             await handoffPatient(patient.id, actionDept, actionNotes, 'Staff');
             setActionType(null);
-            setShowActions(false);
             setActionNotes('');
         } catch (err) { console.error('Failed to handoff:', err); }
     };
@@ -103,6 +92,7 @@ useEffect(() => {
         YELLOW: { emoji: '🟡', label: 'URGENT', icon: '⏱️' },
         GREEN: { emoji: '🟢', label: 'STANDARD', icon: '✓' }
     }[patient.priority] || { emoji: '◯', label: patient.priority, icon: '?' };
+
     const explanation = buildTriageExplanation(patient);
     const sla = getSlaStatus(patient, nowTs);
     const confidencePct = Math.round(explanation.confidence * 100);
@@ -140,9 +130,6 @@ useEffect(() => {
                                 width: '1em',
                                 height: '1em',
                                 display: 'block',
-                                // arrow-bottom_.png points down by default:
-                                // collapsed → point down (no rotation) = "click to expand"
-                                // expanded  → point up (rotate 180°)   = "click to collapse"
                                 transform: collapsed ? 'none' : 'rotate(180deg)',
                                 transition: 'transform 0.2s ease',
                             }}
@@ -157,13 +144,13 @@ useEffect(() => {
                             />
                         </button>
                     )}
+                    {/* Dismiss button — triggers modal in KanbanBoard, not inline */}
                     <button
-  className="card-dismiss"
-  onClick={() => setShowDeleteConfirm(true)}
-  title="Dismiss"
->
-  ✕
-</button>
+                        className="card-dismiss"
+                        onClick={() => onDismiss(patient.id)}
+                        title="Dismiss"
+                        id={`dismiss-${patient.id}`}
+                    >✕</button>
                 </div>
             </div>
 
@@ -284,37 +271,6 @@ useEffect(() => {
             )}
 
             {showDetail && <PatientDetailModal patient={patient} onClose={() => setShowDetail(false)} />}
-                
-
-                {showDeleteConfirm && (
-  <div className="delete-overlay">
-    <div className="delete-modal">
-
-      <h3>Delete Patient</h3>
-      <p>Are you sure you want to delete this patient?</p>
-
-      <div className="delete-actions">
-        <button
-          className="delete-cancel"
-          onClick={() => setShowDeleteConfirm(false)}
-        >
-          No
-        </button>
-
-        <button
-          className="delete-confirm"
-          onClick={() => {
-            setShowDeleteConfirm(false);
-            handleDismiss();
-          }}
-        >
-          Yes
-        </button>
-      </div>
-
-    </div>
-  </div>
-)}
         </div>
     );
 }

@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchPatients, retriagePatient, updatePatientPriority } from '../api/patientApi.js';
+import { fetchPatients, retriagePatient, updatePatientPriority, dismissPatient } from '../api/patientApi.js';
 import PatientCard from './PatientCard.jsx';
 import ReTriageModal from './ReTriageModal.jsx';
 import { clearAuth } from '../api/authApi.js';
 
 const POLL_INTERVAL_MS = 4000;
-// ── NEW: localStorage key for persisting collapse state ──────────────────────
 const COLLAPSE_STORAGE_KEY = 'triage_collapsed_cards';
-// ────────────────────────────────────────────────────────────────────────────
 
 const COLUMNS = [
     {
@@ -27,7 +25,6 @@ const COLUMNS = [
     },
 ];
 
-// ── NEW: helpers to read/write collapse state from localStorage ──────────────
 function loadCollapsedCards() {
     try {
         const stored = localStorage.getItem(COLLAPSE_STORAGE_KEY);
@@ -40,11 +37,8 @@ function loadCollapsedCards() {
 function saveCollapsedCards(state) {
     try {
         localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(state));
-    } catch {
-        // localStorage unavailable — silently ignore
-    }
+    } catch {}
 }
-// ────────────────────────────────────────────────────────────────────────────
 
 export default function KanbanBoard({ newPatient, onPatientsChange }) {
     const [patients, setPatients] = useState([]);
@@ -52,16 +46,15 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
     const [nowTs, setNowTs] = useState(Date.now());
     const [retriageModal, setReTriageModal] = useState(null);
     const [dragOverCol, setDragOverCol] = useState(null);
-
-    // ── NEW: initialise from localStorage so state survives navigation ───────
     const [collapsedCards, setCollapsedCards] = useState(loadCollapsedCards);
+
+    // ── NEW: delete confirmation modal state ─────────────────────────────────
+    const [deleteConfirm, setDeleteConfirm] = useState(null); // stores patient id
     // ────────────────────────────────────────────────────────────────────────
 
-    // ── NEW: persist to localStorage whenever collapsedCards changes ─────────
     useEffect(() => {
         saveCollapsedCards(collapsedCards);
     }, [collapsedCards]);
-    // ────────────────────────────────────────────────────────────────────────
 
     const handleToggleCollapse = useCallback((patientId) => {
         setCollapsedCards(prev => {
@@ -86,7 +79,6 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
             if (onPatientsChange) onPatientsChange(data);
         } catch (err) {
             console.warn('Polling error:', err.message);
-            // If auth is stale/invalid, force a clean login flow instead of showing an empty board.
             if (err.message?.includes('401')) {
                 clearAuth();
                 window.location.reload();
@@ -100,7 +92,6 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
         return () => clearInterval(interval);
     }, [loadPatients]);
 
-
     useEffect(() => {
         if (newPatient) {
             setPatients(prev => {
@@ -110,15 +101,28 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
         }
     }, [newPatient]);
 
+    // ── CHANGED: onDismiss now opens the modal instead of deleting immediately
     const handleDismiss = (id) => {
+        setDeleteConfirm(id);
+    };
+
+    // ── NEW: called when user confirms deletion in the modal ─────────────────
+    const confirmDelete = async () => {
+        const id = deleteConfirm;
+        setDeleteConfirm(null);
+        try {
+            await dismissPatient(id);
+        } catch (err) {
+            console.error('Failed to delete patient:', err);
+        }
         setPatients(prev => prev.filter(p => p.id !== id));
-        // Clean up persisted collapse entry for dismissed patient
         setCollapsedCards(prev => {
             const next = { ...prev };
             delete next[id];
             return next;
         });
     };
+    // ────────────────────────────────────────────────────────────────────────
 
     const handleRetriage = (patient) => setReTriageModal(patient);
     const handleReTriageSubmit = async (id, symptoms, vitals) => {
@@ -211,10 +215,7 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
 
             <div className="kanban-grid">
                 {COLUMNS.map(col => {
-                    const colPatients = React.useMemo(
-    () => patients.filter(p => p.priority === col.key),
-    [patients, col.key]
-);
+                    const colPatients = patients.filter(p => p.priority === col.key);
                     return (
                         <div
                             key={col.key}
@@ -263,6 +264,30 @@ export default function KanbanBoard({ newPatient, onPatientsChange }) {
                     onClose={() => setReTriageModal(null)}
                     onRetriage={handleReTriageSubmit} />
             )}
+
+            {/* ── NEW: Delete confirmation modal ───────────────────────────── */}
+            {deleteConfirm && (
+                <div className="retriage-overlay" onClick={() => setDeleteConfirm(null)}>
+                    <div className="delete-modal" onClick={e => e.stopPropagation()}>
+                        <div className="delete-modal-header">
+                            <span className="delete-modal-icon">🗑️</span>
+                            <h3>Delete Patient</h3>
+                        </div>
+                        <p className="delete-modal-text">
+                            Are you sure you want to delete this patient? This action cannot be undone.
+                        </p>
+                        <div className="delete-modal-actions">
+                            <button className="retriage-cancel" onClick={() => setDeleteConfirm(null)}>
+                                Cancel
+                            </button>
+                            <button className="delete-confirm-btn" onClick={confirmDelete}>
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ────────────────────────────────────────────────────────────── */}
         </div>
     );
 }
