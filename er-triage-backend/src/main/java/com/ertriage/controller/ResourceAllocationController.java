@@ -1,4 +1,4 @@
-package main.java.com.ertriage.controller;
+package com.ertriage.controller;
 
 import com.ertriage.dto.ResourceZoneDTO;
 import com.ertriage.service.ResourceAllocationCatalogService;
