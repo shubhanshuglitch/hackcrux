@@ -99,6 +99,13 @@ public class PatientService {
         return toDTO(saved);
     }
 
+    public String refineSpeech(String rawInput) {
+        if (rawInput == null || rawInput.trim().isEmpty()) {
+            return "";
+        }
+        return aiExtractionService.refineSpeech(rawInput.trim());
+    }
+
     public List<PatientDTO> getAllPatients() {
         List<Patient> patients = patientRepository.findAllByOrderByPriorityAscTimestampAsc();
         List<String> patientIds = patients.stream().map(Patient::getId).collect(Collectors.toList());

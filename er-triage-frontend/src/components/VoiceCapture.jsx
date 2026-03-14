@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { submitPatient } from '../api/patientApi.js';
+import { submitPatient, refineSpeech } from '../api/patientApi.js';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const LANG_OPTIONS = [
@@ -15,6 +15,7 @@ export default function VoiceCapture({ onPatientAdded }) {
     const [status, setStatus] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [language, setLanguage] = useState('hi-IN');
+    const [isRefining, setIsRefining] = useState(false);
     const [isSupported] = useState(() => !!SpeechRecognition);
     const [extractedKeywords, setExtractedKeywords] = useState({ symptoms: [], vitals: [] });
     const recognitionRef = useRef(null);
@@ -243,11 +244,33 @@ export default function VoiceCapture({ onPatientAdded }) {
         recognition.start();
     };
 
-    const stopRecording = () => {
+    const stopRecording = async () => {
         if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
         setIsRecording(false);
         setInterimTranscript('');
         setStatus(null);
+
+        // --- NEW: Refine transcript using AI ---
+        const finalRaw = finalTranscriptRef.current.trim();
+        if (finalRaw) {
+            setIsRefining(true);
+            setStatus({ type: 'info', message: '✨ Refining transcript with AI...' });
+            try {
+                const refined = await refineSpeech(finalRaw);
+                if (refined) {
+                    setTranscript(refined);
+                    finalTranscriptRef.current = refined;
+                    setStatus({ type: 'success', message: 'Transcript refined. Review and click "Analyze & Triage".' });
+                } else {
+                    setStatus(null);
+                }
+            } catch (err) {
+                console.error('Refinement failed:', err);
+                setStatus(null); // Silent fail, keep original
+            } finally {
+                setIsRefining(false);
+            }
+        }
     };
 
     const handleRecordToggle = () => {
@@ -376,7 +399,7 @@ export default function VoiceCapture({ onPatientAdded }) {
                                             className="language-select-premium"
                                             value={language}
                                             onChange={(e) => setLanguage(e.target.value)}
-                                            disabled={isRecording || isSubmitting}
+                                            disabled={isRecording || isSubmitting || isRefining}
                                         >
                                             {LANG_OPTIONS.map((option) => (
                                                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -390,7 +413,7 @@ export default function VoiceCapture({ onPatientAdded }) {
                                             className={`record-btn-premium${isRecording ? ' recording' : ''}`}
                                             onClick={handleRecordToggle}
                                             title={isRecording ? 'Stop Recording' : 'Start Recording'}
-                                            disabled={isSubmitting}
+                                            disabled={isSubmitting || isRefining}
                                         >
                                             <div className="record-btn-inner">
                                                 {isRecording ? <StopIcon size={30} /> : <MicIcon size={34} />}
@@ -419,9 +442,10 @@ export default function VoiceCapture({ onPatientAdded }) {
                                             <span className="input-header-label"><PromptIcon size={16} /> Patient Information</span>
                                         </div>
 
-                                        <textarea id="transcript-input" className={`transcript-box-premium${isRecording ? ' listening' : ''}`}
+                                        <textarea id="transcript-input" className={`transcript-box-premium${isRecording ? ' listening' : ''}${isRefining ? ' refining' : ''}`}
                                             lang={language}
-                                            value={transcript} onChange={e => { setTranscript(e.target.value); extractKeywords(e.target.value); }}
+                                            value={transcript} onChange={e => setTranscript(e.target.value)}
+                                            disabled={isRefining}
                                             placeholder='Record or type patient details...' rows={7}
                                         />
 
@@ -487,7 +511,7 @@ export default function VoiceCapture({ onPatientAdded }) {
                                                 </div>
                                             </button>
 
-                                            <button className="clear-btn-premium compact" onClick={handleClear} disabled={isSubmitting}>
+                                            <button className="clear-btn-premium compact" onClick={handleClear} disabled={isSubmitting || isRefining}>
                                                 <span className="btn-icon-premium"><ClearIcon size={14} /></span>
                                                 <span>CLEAR</span>
                                             </button>

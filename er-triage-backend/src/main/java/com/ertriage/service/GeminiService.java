@@ -31,6 +31,62 @@ public class GeminiService implements AiExtractionService {
     }
 
     @Override
+    public String refineSpeech(String rawInput) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return rawInput;
+        }
+
+        try {
+            String systemPrompt = """
+                    You are a medical speech refinement AI. Your task is to correct typos and misinterpretations in a speech-to-text transcript from an emergency room.
+                    Focus on correcting medical terms, symptoms, and vital signs that sound similar to common words but are clinically incorrect (e.g., "bloat attack" -> "heart attack", "hi blood pressure" -> "high blood pressure", "low auto" -> "low SpO2").
+                    
+                    RULES:
+                    1. Fix phonetic typos and medical inaccuracies.
+                    2. Keep the original meaning and structure of the sentence as much as possible.
+                    3. Do NOT add new information that was not in the input.
+                    4. Return ONLY the refined transcript text—no explanation, no markdown.
+
+                    Speech transcript: %s
+                    """.formatted(rawInput);
+
+            Map<String, Object> textPart = new HashMap<>();
+            textPart.put("text", systemPrompt);
+
+            Map<String, Object> part = new HashMap<>();
+            part.put("parts", List.of(textPart));
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("contents", List.of(part));
+
+            String jsonBody = objectMapper.writeValueAsString(requestBody);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(apiUrl + "?key=" + apiKey))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                System.err.println("Gemini refinement error: " + response.statusCode() + " - " + response.body());
+                return rawInput;
+            }
+
+            JsonNode root = objectMapper.readTree(response.body());
+            String refinedText = root.path("candidates").get(0).path("content").path("parts").get(0).path("text")
+                    .asText();
+
+            return refinedText.trim();
+
+        } catch (Exception e) {
+            System.err.println("Error during speech refinement: " + e.getMessage());
+            return rawInput;
+        }
+    }
+
+    @Override
     public Map<String, Object> extractPatientData(String rawInput) {
         if (apiKey == null || apiKey.isBlank()) {
             return localExtractorService.extract(rawInput);

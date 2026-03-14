@@ -11,6 +11,17 @@ export async function submitPatient(rawInput) {
   return response.json();
 }
 
+export async function refineSpeech(rawInput) {
+  const response = await fetch(`${API_BASE}/refine-speech`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ rawInput }),
+  });
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  const data = await response.json();
+  return data.refinedText;
+}
+
 export async function fetchPatients() {
   const response = await fetch(`${API_BASE}/patients`, { headers: { ...getAuthHeaders() } });
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -101,3 +112,4 @@ export async function updatePatientPriority(id, priority) {
   return response.json();
 }
 // ────────────────────────────────────────────────────────────────────────────
+

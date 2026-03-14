@@ -1,7 +1,5 @@
 package com.ertriage.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -10,8 +8,12 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class HuggingFaceService implements AiExtractionService {
 
@@ -32,6 +34,81 @@ public class HuggingFaceService implements AiExtractionService {
         this.apiKey = apiKey;
         this.apiUrl = apiUrl;
         this.modelId = modelId;
+    }
+
+    @Override
+    public String refineSpeech(String rawInput) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return rawInput;
+        }
+
+        try {
+            String systemPrompt =
+                """
+                You are a medical speech refinement AI. Your task is to correct typos and misinterpretations in a speech-to-text transcript from an emergency room.
+                Focus on correcting medical terms, symptoms, and vital signs that sound similar to common words but are clinically incorrect (e.g., "bloat attack" -> "heart attack", "hi blood pressure" -> "high blood pressure", "low auto" -> "low SpO2").
+                
+                RULES:
+                1. Fix phonetic typos and medical inaccuracies.
+                2. Keep the original meaning and structure of the sentence as much as possible.
+                3. Do NOT add new information that was not in the input.
+                4. Return ONLY the refined transcript text—no explanation, no markdown.
+                """;
+
+            String userMessage = "Speech transcript: " + rawInput;
+
+            Map<String, Object> systemMsg = new HashMap<>();
+            systemMsg.put("role", "system");
+            systemMsg.put("content", systemPrompt);
+
+            Map<String, Object> userMsg = new HashMap<>();
+            userMsg.put("role", "user");
+            userMsg.put("content", userMessage);
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", modelId);
+            requestBody.put("messages", List.of(systemMsg, userMsg));
+            requestBody.put("max_tokens", 512);
+            requestBody.put("temperature", 0.1);
+
+            String jsonBody = objectMapper.writeValueAsString(requestBody);
+
+            HttpRequest request = HttpRequest
+                .newBuilder()
+                .uri(URI.create(apiUrl))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + apiKey)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+            HttpResponse<String> response = httpClient.send(
+                request,
+                HttpResponse.BodyHandlers.ofString()
+            );
+
+            if (response.statusCode() != 200) {
+                logger.error("HuggingFace refinement error: {} - {}", response.statusCode(), response.body());
+                return rawInput;
+            }
+
+            JsonNode root = objectMapper.readTree(response.body());
+            String refinedText;
+
+            if (root.has("choices") && root.path("choices").isArray() && root.path("choices").size() > 0) {
+                refinedText = root.path("choices").get(0).path("message").path("content").asText();
+            } else if (root.isArray() && root.size() > 0) {
+                // Legacy format fallback
+                refinedText = root.get(0).path("generated_text").asText();
+            } else {
+                logger.warn("Unexpected response during refinement: {}", response.body());
+                return rawInput;
+            }
+
+            return refinedText.trim();
+        } catch (Exception e) {
+            logger.error("Error during speech refinement: {}", e.getMessage(), e);
+            return rawInput;
+        }
     }
 
     @Override
@@ -1226,11 +1303,11 @@ COMBINED EXAMPLE INPUTS
 
             logger.info("<<< Cleaned JSON to parse:\n{}", generatedText);
 
-            JsonNode patientData = objectMapper.readTree(generatedText);
+            JsonNode patientDataNode = objectMapper.readTree(generatedText);
 
             Map<String, Object> result = new HashMap<>();
-            result.put("name", patientData.path("name").asText("Unknown"));
-            JsonNode ageNode = patientData.path("age");
+            result.put("name", patientDataNode.path("name").asText("Unknown"));
+            JsonNode ageNode = patientDataNode.path("age");
             result.put(
                 "age",
                 (ageNode.isMissingNode() || ageNode.isNull())
@@ -1239,16 +1316,32 @@ COMBINED EXAMPLE INPUTS
             );
             result.put(
                 "symptoms",
-                patientData.path("symptoms").asText("Not specified")
+                patientDataNode.path("symptoms").asText("Not specified")
             );
-            result.put("vitals", patientData.path("vitals").asText("Not recorded"));
-            result.put("priority", patientData.path("priority").asText("GREEN"));
+            result.put("vitals", patientDataNode.path("vitals").asText("Not recorded"));
+            result.put("priority", patientDataNode.path("priority").asText("GREEN"));
             result.put(
                 "recommended_specialization",
-                patientData
+                patientDataNode
                     .path("recommended_specialization")
                     .asText("Emergency Medicine")
             );
+            result.put("gender", patientDataNode.path("gender").asText("Unknown"));
+            result.put("pregnant", patientDataNode.path("pregnant").asBoolean(false));
+            result.put("trimester", patientDataNode.path("trimester").asText(null));
+
+            // Apply Gynac filtering for male patients if needed
+            if ("Male".equalsIgnoreCase(String.valueOf(result.get("gender")))) {
+                final List<String> gynacTerms = List.of("pregnant", "trimester", "pregnancy", "gestation", "obstetric", "gynec", "gynac", "uterus", "menstruation", "periods", "female-specific");
+                String symptoms = String.valueOf(result.get("symptoms"));
+                for (String term : gynacTerms) {
+                    symptoms = symptoms.replaceAll("(?i)\\b" + term + "\\b", "");
+                }
+                symptoms = symptoms.replaceAll(",\\s*,", ",").replaceAll("^,|,$", "").replaceAll("\\s{2,}", " ").trim();
+                result.put("symptoms", symptoms);
+                result.put("pregnant", false);
+                result.put("trimester", null);
+            }
 
             logger.info("<<< HuggingFace extraction result: {}", result);
             return result;
