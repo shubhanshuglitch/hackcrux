@@ -141,4 +141,8 @@ public class LocalExtractorService {
         }
         return String.join(", ", found);
     }
+
+    public String refineSpeech(String rawInput) {
+        return rawInput;
+    }
 }

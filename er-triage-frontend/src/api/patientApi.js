@@ -26,39 +26,12 @@ export async function searchPatients(query) {
   return response.json();
 }
 
-export async function dismissPatient(id, deleteReason, deletedBy) {
-  if (!deleteReason || !deleteReason.trim()) {
-    throw new Error('Delete reason is required.');
-  }
-
+export async function dismissPatient(id) {
   const response = await fetch(`${API_BASE}/patients/${id}`, {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify({ deleteReason, deletedBy }),
-  });
-  if (!response.ok) {
-    if (response.status === 400) {
-      throw new Error('Delete reason is required.');
-    }
-    throw new Error(`Server error: ${response.status}`);
-  }
-}
-
-export async function fetchRecycleBinPatients() {
-  const response = await fetch(`${API_BASE}/patients/recycle-bin`, {
     headers: { ...getAuthHeaders() },
   });
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
-  return response.json();
-}
-
-export async function restorePatientFromRecycleBin(id) {
-  const response = await fetch(`${API_BASE}/patients/recycle-bin/${id}/restore`, {
-    method: 'PUT',
-    headers: { ...getAuthHeaders() },
-  });
-  if (!response.ok) throw new Error(`Server error: ${response.status}`);
-  return response.json();
 }
 
 export async function retriagePatient(id, symptoms, vitals) {
@@ -97,6 +70,38 @@ export async function updatePatientPriority(id, priority) {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ priority }),
+  });
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  return response.json();
+}
+// ────────────────────────────────────────────────────────────────────────────
+
+// ── SPEECH REFINEMENT (AI-powered transcript improvement) ──────────────────────
+export async function refineSpeech(rawInput) {
+  const response = await fetch(`${API_BASE}/refine-speech`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ rawInput }),
+  });
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  const data = await response.json();
+  return data.refinedText || null;
+}
+// ────────────────────────────────────────────────────────────────────────────
+
+// ── RECYCLE BIN OPERATIONS ────────────────────────────────────────────────────
+export async function fetchRecycleBinPatients() {
+  const response = await fetch(`${API_BASE}/patients/recycle-bin`, { 
+    headers: { ...getAuthHeaders() } 
+  });
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  return response.json();
+}
+
+export async function restorePatientFromRecycleBin(id) {
+  const response = await fetch(`${API_BASE}/patients/${id}/restore`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders() },
   });
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
   return response.json();
