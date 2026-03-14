@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { searchPatients } from '../api/patientApi.js';
 import { fetchAnalytics } from '../api/analyticsApi.js';
+import logoImg from '../assets/logo.png';
 
 export default function Header({ patients, user, onSignOut, onPatientSearchSelect }) {
     const redCount = patients.filter(p => p.priority === 'RED').length;
@@ -116,11 +117,15 @@ export default function Header({ patients, user, onSignOut, onPatientSearchSelec
         <header className="header-new">
             <div className="header-left">
                 <div className="header-logo-badge">
-                    <span className="logo-icon"><HospitalMark /></span>
+                     <img 
+    src={logoImg} 
+    alt="ER Triage Logo" 
+    className="logo-icon"
+  />
                 </div>
                 <div className="header-title-wrap">
                     <h1 className="header-title-main">ER TRIAGE SPRINT</h1>
-                    <span className="header-tag-chip"><span className="header-live-dot"></span>Clinical Command Center</span>
+                   
                 </div>
             </div>
 
