@@ -647,6 +647,7 @@ Accept ALL of the following formats and extract the patient name:
   N = Rahul
   nm: Rahul
   nm = Rahul Sharma
+  n: Rahul
 
   UNKNOWN / ABSENT NAME:
   If no name is found, name is not stated, or input says any of:
