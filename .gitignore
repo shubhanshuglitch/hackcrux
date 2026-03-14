@@ -1,0 +1,35 @@
+﻿# Build outputs
+target/
+dist/
+*.class
+*.jar
+*.war
+
+# Data / databases
+*.db
+*.mv.db
+data/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Node modules
+node_modules/
+
+# Generated lockfiles (reinstall via npm install)
+package-lock.json
+
+# Merge artifacts
+*.orig
+*.resolved
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
