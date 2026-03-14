@@ -138,18 +138,28 @@ public class PatientService {
         return patients.stream().map(this::toDTO).collect(Collectors.toList());
     }
 
-    public void deletePatient(String id) {
+        public void deletePatient(String id, String deleteReason, String deletedBy) {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
 
         List<PatientEvent> events = eventRepository.findByPatientIdOrderByTimestampAsc(id);
+        String normalizedReason = deleteReason.trim();
+        String normalizedDeletedBy = (deletedBy == null || deletedBy.trim().isEmpty())
+            ? "Staff"
+            : deletedBy.trim();
 
         LocalDateTime deletedAt = LocalDateTime.now();
         Date purgeAt = Date.from(deletedAt.plusDays(10)
                 .atZone(ZoneId.systemDefault())
                 .toInstant());
 
-        deletedPatientRepository.save(DeletedPatient.from(patient, events, deletedAt, purgeAt));
+        deletedPatientRepository.save(DeletedPatient.from(
+            patient,
+            events,
+            deletedAt,
+            normalizedReason,
+            normalizedDeletedBy,
+            purgeAt));
 
         eventRepository.deleteByPatientId(id);
         patientRepository.deleteById(id);
@@ -312,6 +322,8 @@ public class PatientService {
             deletedPatient.getPatient() == null ? null : PatientDTO.fromEntity(deletedPatient.getPatient()),
             timeline,
             deletedPatient.getDeletedAt(),
+            deletedPatient.getDeleteReason(),
+            deletedPatient.getDeletedBy(),
             purgeAt);
         }
 

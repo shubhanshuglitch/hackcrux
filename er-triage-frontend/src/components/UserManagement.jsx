@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { fetchUsers, createUser, updateUser, deleteUser } from '../api/userApi.js';
 
-const ROLE_ICONS = { ADMIN: '👑', DOCTOR: '🩺', NURSE: '💉', RECEPTIONIST: '📋' };
-const ROLES = ['ALL', 'ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST'];
-const ROLE_DISPLAY = { ADMIN: 'Admin', DOCTOR: 'Doctor', NURSE: 'Nurse', RECEPTIONIST: 'Receptionist' };
+const ROLE_ICONS = { ADMIN: '👑', DOCTOR: '🩺', SUPERVISOR: '🧭', NURSE: '💉', RECEPTIONIST: '📋' };
+const ROLES = ['ALL', 'ADMIN', 'DOCTOR', 'SUPERVISOR', 'NURSE', 'RECEPTIONIST'];
+const ROLE_DISPLAY = { ADMIN: 'Admin', DOCTOR: 'Doctor', SUPERVISOR: 'Supervisor', NURSE: 'Nurse', RECEPTIONIST: 'Receptionist' };
 const DEPARTMENTS = [
     // General / Support
     'Emergency Medicine',
@@ -33,6 +33,19 @@ const DEPARTMENTS = [
     'ENT (Otolaryngology)',
     'Hematology',
     'Endocrinology',
+];
+
+const SPECIALIZATIONS = [
+    'Cardiologist',
+    'Pulmonologist',
+    'Neurologist',
+    'Orthopedic Surgeon',
+    'Gastroenterologist',
+    'General Surgeon',
+    'Endocrinologist',
+    'Allergist',
+    'Emergency Medicine',
+    'General Physician',
 ];
 
 const emptyForm = { username: '', fullName: '', email: '', role: 'DOCTOR', department: 'Emergency Medicine', specialization: '', active: true };
@@ -209,6 +222,7 @@ export default function UserManagement() {
                                     <label>Role</label>
                                     <select name="role" value={formData.role} onChange={handleChange}>
                                         <option value="DOCTOR">🩺 Doctor</option>
+                                        <option value="SUPERVISOR">🧭 Supervisor</option>
                                         <option value="NURSE">💉 Nurse</option>
                                         <option value="ADMIN">👑 Admin</option>
                                         <option value="RECEPTIONIST">📋 Receptionist</option>

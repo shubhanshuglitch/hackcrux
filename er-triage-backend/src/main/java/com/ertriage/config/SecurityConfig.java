@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/analytics/**").permitAll()
                 .requestMatchers("/api/users/**").permitAll()
+                .requestMatchers("/api/patients/recycle-bin/**").hasAnyRole("ADMIN", "DOCTOR", "SUPERVISOR")
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
             )
