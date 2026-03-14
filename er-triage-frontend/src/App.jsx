@@ -161,6 +161,10 @@ export default function App() {
         });
     }, []);
 
+    if (!isAuthenticated) {
+        return <Login onLogin={handleLogin} />;
+    }
+
     return (
         <div className="app-shell" ref={shellRef} onMouseMove={handlePointerMove}>
             <div className="ambient-particles" aria-hidden="true">
