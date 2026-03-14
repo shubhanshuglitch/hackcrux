@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { searchPatients } from '../api/patientApi.js';
 import { fetchAnalytics } from '../api/analyticsApi.js';
 import logoImg from '../assets/logo.png';
+import peopleIcon from '../assets/people.png';
+import logoutIcon from '../assets/log-out.png';
+import bellIcon from '../assets/bell.png';
 
 export default function Header({ patients, user, onSignOut, onPatientSearchSelect }) {
     const redCount = patients.filter(p => p.priority === 'RED').length;
@@ -149,15 +152,31 @@ export default function Header({ patients, user, onSignOut, onPatientSearchSelec
 
             <div className="header-right">
                 <button className="header-btn find-btn" onClick={() => setShowSearch(!showSearch)}>
-                    <span className="btn-icon">🔍</span>
+                    <span className="btn-icon">
+  <img 
+    src={peopleIcon} 
+    alt="search" 
+    style={{ width: '16px', height: '16px', objectFit: 'contain' }} 
+  />
+</span>
                     Find Patient
                 </button>
                 <button className="header-btn notif-btn" onClick={handleOpenNotifications}>
-                    <span className="btn-icon">🔔</span>
+                    <span className="btn-icon"><img 
+    src={bellIcon} 
+    alt="search" 
+    style={{ width: '18px', height: '18px', objectFit: 'contain' }} 
+  /></span>
                     {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
                 </button>
                 <button className="header-btn signout-btn" onClick={onSignOut}>
-                    <span className="btn-icon">→</span>
+                    <span className="btn-icon">
+  <img 
+    src={logoutIcon} 
+    alt="logout" 
+    style={{ width: '16px', height: '16px', objectFit: 'contain' }} 
+  />
+</span>
                     Sign Out{user ? ` (${user.username || user.fullName || ''})` : ''}
                 </button>
             </div>
