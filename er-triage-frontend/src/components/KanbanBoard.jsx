@@ -166,10 +166,12 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
     };
 
     const handleRetriage = (patient) => setReTriageModal(patient);
+
     const handleReTriageSubmit = async (id, symptoms, vitals) => {
-        await retriagePatient(id, symptoms, vitals);
-        await loadPatients();
-    };
+    const updated = await retriagePatient(id, symptoms, vitals);
+    await loadPatients();
+    return updated;
+};
 
     const handleDragStart = useCallback((patientId) => {
         dragPatientId.current = patientId;
