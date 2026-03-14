@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Header from './components/Header.jsx';
+import Footer from './components/Footer.jsx';
 import VoiceCapture from './components/VoiceCapture.jsx';
 import KanbanBoard from './components/KanbanBoard.jsx';
 import TaskManager from './components/TaskManager.jsx';
@@ -164,7 +165,7 @@ export default function App() {
                         onClick={() => setActiveTab('staffMgmt')}>🧾 Staff Management Directory</button>
                     {assignedTasksAllowed && (
                         <button className={`tab-btn ${activeTab === 'assignedTasks' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('assignedTasks')}>✅ My Assigned Tasks</button>
+                            onClick={() => setActiveTab('assignedTasks')}>✅ My Worklist</button>
                     )}
                     <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
                         onClick={() => setActiveTab('analytics')}>📊 Analytics</button>
@@ -209,6 +210,7 @@ export default function App() {
                     <Analytics />
                 ) : null}
             </main>
+            <Footer onTabChange={setActiveTab} />
         </div>
     );
 }
