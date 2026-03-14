@@ -1,4 +1,4 @@
-package main.java.com.ertriage.dto;
+package com.ertriage.dto;
 
 import java.time.LocalDateTime;
 import java.util.List;

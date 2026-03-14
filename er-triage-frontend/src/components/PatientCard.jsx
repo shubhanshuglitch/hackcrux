@@ -1,4 +1,4 @@
-import { dischargePatient, handoffPatient } from '../api/patientApi.js';
+import { dismissPatient, handoffPatient } from '../api/patientApi.js';
 import PatientTimeline from './PatientTimeline.jsx';
 import PatientDetailModal from './PatientDetailModal.jsx';
 
@@ -74,9 +74,11 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
 
     const handleDischarge = async () => {
         try {
-            await dischargePatient(patient.id, actionNotes || 'Patient discharged', 'Staff');
+            const deleteReason = actionNotes || 'Patient discharged';
+            await dismissPatient(patient.id, deleteReason, 'Staff');
             setActionType(null);
             setActionNotes('');
+            if (onDismiss) onDismiss(patient.id); // Remove from board
         } catch (err) { console.error('Failed to discharge:', err); }
     };
 

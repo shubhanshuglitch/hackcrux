@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { fetchPatients, retriagePatient, updatePatientPriority, dismissPatient } from '../api/patientApi.js';
 import PatientCard from './PatientCard.jsx';
 import ReTriageModal from './ReTriageModal.jsx';
+import Toast from './Toast.jsx';
 
 const POLL_INTERVAL_MS = 4000;
 // ── NEW: localStorage key for persisting collapse state ──────────────────────
@@ -56,6 +57,14 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
     const [deleteReason, setDeleteReason] = useState('');
     const [deleteError, setDeleteError] = useState('');
     const [deleting, setDeleting] = useState(false);
+    
+    // ── NEW: toast notification state ────────────────────────────────────────
+    const [toast, setToast] = useState(null);
+    // ────────────────────────────────────────────────────────────────────────
+    
+    // ── NEW: track recently discharged patients to prevent them from reappearing ───
+    const recentlyDischargedRef = useRef(new Set());
+    // ────────────────────────────────────────────────────────────────────────
 
     // ── NEW: initialise from localStorage so state survives navigation ───────
     const [collapsedCards, setCollapsedCards] = useState(loadCollapsedCards);
@@ -80,11 +89,13 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
     const loadPatients = useCallback(async () => {
         try {
             const data = await fetchPatients();
-            const merged = data.map(p =>
-                pendingPriorityRef.current[p.id] !== undefined
-                    ? { ...p, priority: pendingPriorityRef.current[p.id] }
-                    : p
-            );
+            const merged = data
+                .filter(p => !recentlyDischargedRef.current.has(p.id)) // ── FIX: exclude recently discharged ──
+                .map(p =>
+                    pendingPriorityRef.current[p.id] !== undefined
+                        ? { ...p, priority: pendingPriorityRef.current[p.id] }
+                        : p
+                );
             setPatients(merged);
             setLastUpdated(new Date());
             if (onPatientsChange) onPatientsChange(merged);
@@ -131,6 +142,26 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
             return next;
         });
     }, []);
+
+    // ── NEW: handle patient discharge ────────────────────────────────────────
+    const handleDischarge = useCallback((patientId) => {
+        removePatientFromBoard(patientId);
+        
+        // ── FIX: Add to recently discharged to prevent polling from re-adding ──
+        recentlyDischargedRef.current.add(patientId);
+        // Remove from recently discharged after 5 seconds (after toast disappears)
+        setTimeout(() => {
+            recentlyDischargedRef.current.delete(patientId);
+        }, 5000);
+        // ────────────────────────────────────────────────────────────────────────
+        
+        setToast({
+            message: '✅ Patient successfully discharged!',
+            type: 'success',
+            duration: 3000,
+        });
+    }, [removePatientFromBoard]);
+    // ────────────────────────────────────────────────────────────────────────
 
     const handleArchiveRequest = useCallback((patient) => {
         setDeleteCandidate(patient);
@@ -301,7 +332,9 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
             {retriageModal && (
                 <ReTriageModal patient={retriageModal}
                     onClose={() => setReTriageModal(null)}
-                    onRetriage={handleReTriageSubmit} />
+                    onRetriage={handleReTriageSubmit}
+                    currentUser={currentUser}
+                    onDischarge={handleDischarge} />
             )}
 
             {deleteCandidate && createPortal(
@@ -343,6 +376,17 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
                 </div>,
                 document.body,
             )}
+
+            {/* ── NEW: toast notification ──────────────────────────────────── */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    duration={toast.duration}
+                    onClose={() => setToast(null)}
+                />
+            )}
+            {/* ─────────────────────────────────────────────────────────────── */}
         </div>
     );
 }

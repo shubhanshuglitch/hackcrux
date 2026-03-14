@@ -1,4 +1,4 @@
-package main.java.com.ertriage.service;
+package com.ertriage.service;
 
 import com.ertriage.dto.ResourceRoomDTO;
 import com.ertriage.dto.ResourceZoneDTO;
