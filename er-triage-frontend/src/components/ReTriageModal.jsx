@@ -81,10 +81,14 @@ export default function ReTriageModal({ patient, onClose, onRetriage }) {
                     <div className={`retriage-result ${priorityClass}`}>
                         <div className="retriage-result-title">Updated Triage Result</div>
                         <div className="retriage-priority-shift">
-                            <span>{result.oldPriority}</span>
-                            <span className="shift-arrow">→</span>
-                            <span>{result.newPriority}</span>
-                        </div>
+    <span style={{
+        color: result.oldPriority === 'RED' ? '#ff4d4d' : result.oldPriority === 'YELLOW' ? '#ffc107' : '#00e676'
+    }}>{result.oldPriority}</span>
+    <span className="shift-arrow" style={{ color: '#aaa' }}>→</span>
+    <span style={{
+        color: result.newPriority === 'RED' ? '#ff4d4d' : result.newPriority === 'YELLOW' ? '#ffc107' : '#00e676'
+    }}>{result.newPriority}</span>
+</div>
                         <div className="retriage-result-row"><strong>Updated Symptoms:</strong> {result.updated?.symptoms || symptoms || 'Not recorded'}</div>
                         <div className="retriage-result-row"><strong>Updated Vitals:</strong> {result.updated?.vitals || vitals || 'Not recorded'}</div>
                         <div className="retriage-situation">{result.situation}</div>
