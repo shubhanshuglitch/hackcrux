@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchPatients, retriagePatient, updatePatientPriority } from '../api/patientApi.js';
+import { fetchPatients, retriagePatient, updatePatientPriority, dismissPatient } from '../api/patientApi.js';
 import PatientCard from './PatientCard.jsx';
 import ReTriageModal from './ReTriageModal.jsx';
 
@@ -118,14 +118,19 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
         }
     }, [highlightPatientId, patients, onHighlighted]);
 
-    const handleDismiss = (id) => {
-        setPatients(prev => prev.filter(p => p.id !== id));
-        // Clean up persisted collapse entry for dismissed patient
-        setCollapsedCards(prev => {
-            const next = { ...prev };
-            delete next[id];
-            return next;
-        });
+    const handleDismiss = async (id) => {
+        try {
+            await dismissPatient(id);
+            setPatients(prev => prev.filter(p => p.id !== id));
+            // Clean up persisted collapse entry for dismissed patient
+            setCollapsedCards(prev => {
+                const next = { ...prev };
+                delete next[id];
+                return next;
+            });
+        } catch (err) {
+            console.error('Failed to dismiss patient:', err);
+        }
     };
 
     const handleRetriage = (patient) => setReTriageModal(patient);

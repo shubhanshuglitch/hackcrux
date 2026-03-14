@@ -2,18 +2,23 @@ package com.ertriage.service;
 
 import com.ertriage.dto.PatientDTO;
 import com.ertriage.dto.PatientEventDTO;
+import com.ertriage.dto.RecycleBinPatientDTO;
+import com.ertriage.model.DeletedPatient;
 import com.ertriage.model.Patient;
 import com.ertriage.model.PatientEvent;
 import com.ertriage.model.User;
+import com.ertriage.repository.DeletedPatientRepository;
 import com.ertriage.repository.PatientEventRepository;
 import com.ertriage.repository.PatientRepository;
 import com.ertriage.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Date;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,16 +30,19 @@ public class PatientService {
     private final LocalExtractorService localExtractorService;
     private final PatientEventRepository eventRepository;
     private final UserRepository userRepository;
+    private final DeletedPatientRepository deletedPatientRepository;
 
     public PatientService(PatientRepository patientRepository, AiExtractionService aiExtractionService,
             TriageRulesEngine triageRulesEngine, LocalExtractorService localExtractorService,
-            PatientEventRepository eventRepository, UserRepository userRepository) {
+            PatientEventRepository eventRepository, UserRepository userRepository,
+            DeletedPatientRepository deletedPatientRepository) {
         this.patientRepository = patientRepository;
         this.aiExtractionService = aiExtractionService;
         this.triageRulesEngine = triageRulesEngine;
         this.localExtractorService = localExtractorService;
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
+        this.deletedPatientRepository = deletedPatientRepository;
     }
 
     public PatientDTO processAndSavePatient(String rawInput) {
@@ -131,8 +139,51 @@ public class PatientService {
     }
 
     public void deletePatient(String id) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
+
+        List<PatientEvent> events = eventRepository.findByPatientIdOrderByTimestampAsc(id);
+
+        LocalDateTime deletedAt = LocalDateTime.now();
+        Date purgeAt = Date.from(deletedAt.plusDays(10)
+                .atZone(ZoneId.systemDefault())
+                .toInstant());
+
+        deletedPatientRepository.save(DeletedPatient.from(patient, events, deletedAt, purgeAt));
+
         eventRepository.deleteByPatientId(id);
         patientRepository.deleteById(id);
+    }
+
+    public List<RecycleBinPatientDTO> getRecycleBinPatients() {
+        return deletedPatientRepository.findAllByOrderByDeletedAtDesc()
+                .stream()
+                .map(this::toRecycleBinDTO)
+                .collect(Collectors.toList());
+    }
+
+    public PatientDTO restorePatientFromRecycleBin(String id) {
+        DeletedPatient deletedPatient = deletedPatientRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Archived patient not found with id: " + id));
+
+        Patient archivedPatient = deletedPatient.getPatient();
+        if (archivedPatient == null) {
+            throw new IllegalArgumentException("Archived patient payload is missing for id: " + id);
+        }
+
+        Patient restored = patientRepository.save(archivedPatient);
+
+        List<PatientEvent> archivedEvents = deletedPatient.getEvents();
+        if (archivedEvents != null && !archivedEvents.isEmpty()) {
+            archivedEvents.forEach(event -> {
+                event.setId(null);
+                event.setPatientId(restored.getId());
+            });
+            eventRepository.saveAll(archivedEvents);
+        }
+
+        deletedPatientRepository.deleteById(id);
+        return toDTO(restored);
     }
 
     public PatientDTO dischargePatient(String id, String notes, String performedBy) {
@@ -246,6 +297,23 @@ public class PatientService {
         return new PatientEventDTO(event.getId(), event.getEventType().name(), event.getDescription(),
                 event.getOldPriority(), event.getNewPriority(), event.getPerformedBy(), event.getTimestamp());
     }
+
+        private RecycleBinPatientDTO toRecycleBinDTO(DeletedPatient deletedPatient) {
+        List<PatientEventDTO> timeline = deletedPatient.getEvents() == null
+            ? List.of()
+            : deletedPatient.getEvents().stream().map(this::toEventDTO).collect(Collectors.toList());
+
+        LocalDateTime purgeAt = deletedPatient.getPurgeAt() == null
+            ? null
+            : deletedPatient.getPurgeAt().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+
+        return new RecycleBinPatientDTO(
+            deletedPatient.getId(),
+            deletedPatient.getPatient() == null ? null : PatientDTO.fromEntity(deletedPatient.getPatient()),
+            timeline,
+            deletedPatient.getDeletedAt(),
+            purgeAt);
+        }
 
     private boolean isValidPatientName(String value) {
         if (value == null || value.isBlank())

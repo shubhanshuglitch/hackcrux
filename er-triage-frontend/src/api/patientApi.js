@@ -34,6 +34,23 @@ export async function dismissPatient(id) {
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
 }
 
+export async function fetchRecycleBinPatients() {
+  const response = await fetch(`${API_BASE}/patients/recycle-bin`, {
+    headers: { ...getAuthHeaders() },
+  });
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  return response.json();
+}
+
+export async function restorePatientFromRecycleBin(id) {
+  const response = await fetch(`${API_BASE}/patients/recycle-bin/${id}/restore`, {
+    method: 'PUT',
+    headers: { ...getAuthHeaders() },
+  });
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  return response.json();
+}
+
 export async function retriagePatient(id, symptoms, vitals) {
   const response = await fetch(`${API_BASE}/patients/${id}/retriage`, {
     method: 'PUT',

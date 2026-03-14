@@ -195,6 +195,256 @@
   font-size: 12px;
 }
 
+/* --- Recycle Bin --- */
+.recycle-bin-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.recycle-bin-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(122, 186, 172, 0.24), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(239, 247, 245, 0.96));
+  border: 1px solid rgba(47, 111, 122, 0.12);
+  box-shadow: 0 18px 50px rgba(31, 64, 78, 0.08);
+}
+
+.recycle-bin-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #5e7f86;
+  margin-bottom: 10px;
+}
+
+.recycle-bin-title {
+  font-family: 'Sora', var(--font-main);
+  font-size: clamp(28px, 3vw, 38px);
+  color: #174752;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.recycle-bin-subtitle {
+  max-width: 620px;
+  color: #4d6672;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.recycle-bin-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.recycle-bin-stat-card {
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(47, 111, 122, 0.12);
+}
+
+.recycle-bin-stat-value {
+  font-family: 'Sora', var(--font-main);
+  font-size: 30px;
+  color: #174752;
+}
+
+.recycle-bin-stat-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #6a8690;
+}
+
+.recycle-bin-refresh-btn,
+.recycle-bin-restore-btn {
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.recycle-bin-refresh-btn {
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #255b64, #4b8b7f);
+  color: white;
+  box-shadow: 0 14px 32px rgba(37, 91, 100, 0.18);
+}
+
+.recycle-bin-refresh-btn:hover,
+.recycle-bin-restore-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.recycle-bin-banner {
+  padding: 14px 16px;
+  border-radius: 16px;
+  font-weight: 600;
+}
+
+.recycle-bin-banner.error {
+  background: rgba(191, 94, 94, 0.1);
+  border: 1px solid rgba(191, 94, 94, 0.25);
+  color: #8d2f2f;
+}
+
+.recycle-bin-empty-state {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 36px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px dashed rgba(47, 111, 122, 0.22);
+  color: #58707e;
+}
+
+.recycle-bin-empty-clean {
+  gap: 8px;
+}
+
+.recycle-bin-empty-icon {
+  font-size: 34px;
+}
+
+.recycle-bin-empty-title {
+  font-family: 'Sora', var(--font-main);
+  font-size: 22px;
+  color: #1d4750;
+}
+
+.recycle-bin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.recycle-bin-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 24px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(243, 249, 248, 0.94));
+  border: 1px solid rgba(47, 111, 122, 0.12);
+  box-shadow: 0 16px 36px rgba(40, 76, 86, 0.08);
+}
+
+.recycle-bin-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.recycle-bin-patient-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: #173f49;
+  margin-bottom: 8px;
+}
+
+.recycle-bin-patient-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #64808e;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.recycle-bin-patient-meta span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(101, 142, 151, 0.1);
+}
+
+.recycle-bin-retention-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(191, 150, 78, 0.14);
+  color: #8a6422;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.recycle-bin-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recycle-bin-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.recycle-bin-detail-block,
+.recycle-bin-symptoms,
+.recycle-bin-vitals {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(47, 111, 122, 0.08);
+}
+
+.recycle-bin-detail-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6f8b95;
+}
+
+.recycle-bin-symptoms p,
+.recycle-bin-vitals p {
+  color: #37525f;
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+.recycle-bin-card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.recycle-bin-restore-btn {
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #2f6f7a, #5a9ca8);
+  color: white;
+  min-width: 210px;
+}
+
+.recycle-bin-restore-btn:disabled,
+.recycle-bin-refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 /* --- CSS Variables --- */
 :root {
   --pointer-x: 50%;

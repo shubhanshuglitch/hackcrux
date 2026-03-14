@@ -1,6 +1,7 @@
 package com.ertriage.controller;
 
 import com.ertriage.dto.PatientDTO;
+import com.ertriage.dto.RecycleBinPatientDTO;
 import com.ertriage.service.PatientService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -49,8 +50,26 @@ public class PatientController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePatient(@PathVariable String id) {
-        patientService.deletePatient(id);
-        return ResponseEntity.noContent().build();
+        try {
+            patientService.deletePatient(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/recycle-bin")
+    public ResponseEntity<List<RecycleBinPatientDTO>> getRecycleBinPatients() {
+        return ResponseEntity.ok(patientService.getRecycleBinPatients());
+    }
+
+    @PutMapping("/recycle-bin/{id}/restore")
+    public ResponseEntity<PatientDTO> restorePatient(@PathVariable String id) {
+        try {
+            return ResponseEntity.ok(patientService.restorePatientFromRecycleBin(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PutMapping("/{id}/discharge")

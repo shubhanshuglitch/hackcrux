@@ -5,6 +5,7 @@ import KanbanBoard from './components/KanbanBoard.jsx';
 import TaskManager from './components/TaskManager.jsx';
 import UserManagement from './components/UserManagement.jsx';
 import Analytics from './components/Analytics.jsx';
+import RecycleBin from './components/RecycleBin.jsx';
 import Login from './components/Login.jsx';
 import { getStoredToken, getStoredUser, clearAuth } from './api/authApi.js';
 
@@ -33,6 +34,14 @@ export default function App() {
         setNewPatient(patient);
         setTimeout(() => setNewPatient(null), 100);
     };
+
+    const handlePatientRestored = useCallback((patient) => {
+        if (!patient?.id) return;
+        setNewPatient(patient);
+        setTargetPatientId(patient.id);
+        setActiveTab('triage');
+        setTimeout(() => setNewPatient(null), 100);
+    }, []);
 
     const handlePatientsChange = useCallback((updatedList) => {
         setPatients(updatedList);
@@ -87,6 +96,8 @@ export default function App() {
                 <div className="tab-navigation">
                     <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
                         onClick={() => setActiveTab('triage')}>🩺 Patient Triage</button>
+                    <button className={`tab-btn ${activeTab === 'recycle' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('recycle')}>♻️ Recycle Bin</button>
                     <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
                         onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
                     <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
@@ -111,6 +122,8 @@ export default function App() {
                     </>
                 ) : activeTab === 'users' ? (
                     <UserManagement />
+                ) : activeTab === 'recycle' ? (
+                    <RecycleBin onPatientRestored={handlePatientRestored} />
                 ) : activeTab === 'analytics' ? (
                     <Analytics />
                 ) : null}
