@@ -15,6 +15,9 @@ import { getStoredToken, getStoredUser, clearAuth } from './api/authApi.js';
 
 const RECYCLE_BIN_ACCESS_ROLES = ['ADMIN', 'DOCTOR', 'SUPERVISOR'];
 const ASSIGNED_TASK_ACCESS_ROLES = ['ADMIN', 'DOCTOR', 'NURSE'];
+const RESOURCE_ALLOCATION_ACCESS_ROLES = ['ADMIN', 'SUPERVISOR', 'NURSE', 'RECEPTIONIST'];
+const STAFF_DIRECTORY_ACCESS_ROLES = ['ADMIN', 'SUPERVISOR'];
+const STAFF_MANAGEMENT_ACCESS_ROLES = ['ADMIN', 'SUPERVISOR'];
 
 function canAccessRecycleBin(user) {
     return RECYCLE_BIN_ACCESS_ROLES.includes(user?.role);
@@ -22,6 +25,18 @@ function canAccessRecycleBin(user) {
 
 function canAccessAssignedTasks(user) {
     return ASSIGNED_TASK_ACCESS_ROLES.includes(user?.role);
+}
+
+function canAccessResourceAllocation(user) {
+    return RESOURCE_ALLOCATION_ACCESS_ROLES.includes(user?.role);
+}
+
+function canAccessStaffDirectory(user) {
+    return STAFF_DIRECTORY_ACCESS_ROLES.includes(user?.role);
+}
+
+function canAccessStaffManagement(user) {
+    return STAFF_MANAGEMENT_ACCESS_ROLES.includes(user?.role);
 }
 
 export default function App() {
@@ -36,6 +51,9 @@ export default function App() {
     const frameRef = useRef(null);
     const recycleBinAllowed = canAccessRecycleBin(user);
     const assignedTasksAllowed = canAccessAssignedTasks(user);
+    const resourceAllowed = canAccessResourceAllocation(user);
+    const staffDirectoryAllowed = canAccessStaffDirectory(user);
+    const staffMgmtAllowed = canAccessStaffManagement(user);
 
     const handleLogin = (userData) => {
         setUser(userData);
@@ -96,19 +114,29 @@ export default function App() {
     useEffect(() => {
         if (!recycleBinAllowed) {
             setRecycleBinCount(0);
-            if (activeTab === 'assignedTasks') {
-                setActiveTab('triage');
-            }
             if (activeTab === 'recycle') {
                 setActiveTab('triage');
             }
-            return;
+        }
+        if (!assignedTasksAllowed && activeTab === 'assignedTasks') {
+            setActiveTab('triage');
+        }
+        if (!resourceAllowed && activeTab === 'resource') {
+            setActiveTab('triage');
+        }
+        if (!staffDirectoryAllowed && activeTab === 'users') {
+            setActiveTab('triage');
+        }
+        if (!staffMgmtAllowed && activeTab === 'staffMgmt') {
+            setActiveTab('triage');
         }
 
-        refreshRecycleBinCount();
-        const interval = setInterval(refreshRecycleBinCount, 30000);
-        return () => clearInterval(interval);
-    }, [activeTab, recycleBinAllowed, refreshRecycleBinCount]);
+        if (recycleBinAllowed) {
+            refreshRecycleBinCount();
+            const interval = setInterval(refreshRecycleBinCount, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [activeTab, recycleBinAllowed, assignedTasksAllowed, resourceAllowed, staffDirectoryAllowed, staffMgmtAllowed, refreshRecycleBinCount]);
 
     const handlePatientSearchSelect = (patientId) => {
         setTargetPatientId(patientId);
@@ -154,12 +182,18 @@ export default function App() {
                             <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('triage')}>🩺 Patient Triage</button>
 
-                            <button className={`tab-btn ${activeTab === 'resource' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('resource')}>🏥 Resource Allocation</button>
-                            <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
-                            <button className={`tab-btn ${activeTab === 'staffMgmt' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('staffMgmt')}>🧾 Staff Management Directory</button>
+                            {resourceAllowed && (
+                                <button className={`tab-btn ${activeTab === 'resource' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('resource')}>🏥 Resource Allocation</button>
+                            )}
+                            {staffDirectoryAllowed && (
+                                <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
+                            )}
+                            {staffMgmtAllowed && (
+                                <button className={`tab-btn ${activeTab === 'staffMgmt' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('staffMgmt')}>🧾 Staff Management Directory</button>
+                            )}
                             {assignedTasksAllowed && (
                                 <button className={`tab-btn ${activeTab === 'assignedTasks' ? 'active' : ''}`}
                                     onClick={() => setActiveTab('assignedTasks')}>✅ My Assigned Tasks</button>
@@ -174,6 +208,7 @@ export default function App() {
                                 </button>
                             )}
                         </div>
+                        <div key={activeTab} className="tab-content-animated">
                         {activeTab === 'triage' ? (
                             <>
                                 <VoiceCapture onPatientAdded={handlePatientAdded} />
@@ -206,6 +241,7 @@ export default function App() {
                         ) : activeTab === 'analytics' ? (
                             <Analytics />
                         ) : null}
+                        </div>
                     </main>
                 </div>
             ) : (
