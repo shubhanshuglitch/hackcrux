@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
+import { dismissPatient } from '../api/patientApi.js';
 
-export default function ReTriageModal({ patient, onClose, onRetriage }) {
+export default function ReTriageModal({ patient, onClose, onRetriage, currentUser, onDischarge }) {
     const [symptoms, setSymptoms] = useState(patient.symptoms || '');
     const [vitals, setVitals] = useState(patient.vitals || '');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [result, setResult] = useState(null);
+    const [discharging, setDischarging] = useState(false);
+
+    // ── NEW: detect if patient is ready for discharge ──────────────────────
+    const isReadyForDischarge = (symp, vit) => {
+        const text = `${symp} ${vit}`.toLowerCase();
+        const stableKeywords = ['all stable', 'all clear', 'stable', 'ready for discharge', 'can discharge', 'fit for discharge'];
+        return stableKeywords.some(keyword => text.includes(keyword));
+    };
+    // ────────────────────────────────────────────────────────────────────────
 
     const getSituationSummary = (oldPriority, newPriority) => {
         if (oldPriority === newPriority) {
@@ -46,6 +56,27 @@ export default function ReTriageModal({ patient, onClose, onRetriage }) {
             setError(err.message);
         } finally { setLoading(false); }
     };
+
+    // ── NEW: handle discharge ────────────────────────────────────────────────
+    const handleDischarge = async () => {
+        setDischarging(true);
+        setError(null);
+        try {
+            const performedBy = currentUser?.fullName || currentUser?.username || 'Staff';
+            const deleteReason = `Patient discharged. Symptoms: ${symptoms}. Vitals: ${vitals}`;
+            await dismissPatient(patient.id, deleteReason, performedBy);
+            if (onDischarge) {
+                onDischarge(patient.id);
+            }
+            onClose();
+        } catch (err) {
+            console.error('Discharge failed:', err);
+            setError(err.message || 'Failed to discharge patient');
+        } finally {
+            setDischarging(false);
+        }
+    };
+    // ────────────────────────────────────────────────────────────────────────
 
     const priorityClass = result
         ? `priority-${result.newPriority || 'GREEN'}`
@@ -92,15 +123,38 @@ export default function ReTriageModal({ patient, onClose, onRetriage }) {
                         <div className="retriage-result-row"><strong>Updated Symptoms:</strong> {result.updated?.symptoms || symptoms || 'Not recorded'}</div>
                         <div className="retriage-result-row"><strong>Updated Vitals:</strong> {result.updated?.vitals || vitals || 'Not recorded'}</div>
                         <div className="retriage-situation">{result.situation}</div>
+                        
+                        {/* ── NEW: show discharge banner if stable ────────────────── */}
+                        {isReadyForDischarge(symptoms, vitals) && (
+                            <div className="discharge-banner">
+                                <span className="discharge-icon">🏥</span>
+                                <span className="discharge-text">Patient is ready for discharge!</span>
+                            </div>
+                        )}
+                        {/* ──────────────────────────────────────────────────────── */}
                     </div>
                 )}
 
                 {error && <div className="status-message status-error"><span className="status-icon">❌</span>{error}</div>}
 
                 <div className="retriage-actions">
-                    <button className="retriage-cancel" onClick={onClose} disabled={loading}>Cancel</button>
+                    <button className="retriage-cancel" onClick={onClose} disabled={loading || discharging}>Cancel</button>
                     {result ? (
-                        <button className="retriage-submit" onClick={onClose}>Done</button>
+                        <>
+                            {/* ── NEW: show discharge button if stable ──────────────-- */}
+                            {isReadyForDischarge(symptoms, vitals) ? (
+                                <button 
+                                    className="retriage-submit discharge-btn" 
+                                    onClick={handleDischarge} 
+                                    disabled={discharging}
+                                >
+                                    {discharging ? 'Discharging...' : '🏥 Discharge Patient'}
+                                </button>
+                            ) : (
+                                <button className="retriage-submit" onClick={onClose}>Done</button>
+                            )}
+                            {/* ──────────────────────────────────────────────────── */}
+                        </>
                     ) : (
                         <button className="retriage-submit" onClick={handleSubmit} disabled={loading}>
                             {loading ? 'Re-triaging...' : '🧠 Re-Triage Now'}

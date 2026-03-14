@@ -1,4 +1,4 @@
-import { dischargePatient, handoffPatient } from '../api/patientApi.js';
+import { dismissPatient, handoffPatient } from '../api/patientApi.js';
 import PatientTimeline from './PatientTimeline.jsx';
 import PatientDetailModal from './PatientDetailModal.jsx';
 
@@ -71,21 +71,43 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
     const [actionNotes, setActionNotes] = useState('');
     const [actionDept, setActionDept] = useState('ICU');
     const [showDetail, setShowDetail] = useState(false);
+    const [discharging, setDischarging] = useState(false);
+    const [actionError, setActionError] = useState('');
 
     const handleDischarge = async () => {
+        if (!actionNotes.trim()) {
+            setActionError('Discharge notes are required');
+            return;
+        }
+        setDischarging(true);
+        setActionError('');
         try {
-            await dischargePatient(patient.id, actionNotes || 'Patient discharged', 'Staff');
+            const deleteReason = actionNotes.trim();
+            await dismissPatient(patient.id, deleteReason, 'Staff');
             setActionType(null);
             setActionNotes('');
-        } catch (err) { console.error('Failed to discharge:', err); }
+            if (onDismiss) onDismiss(patient.id); // Remove from board
+        } catch (err) { 
+            console.error('Failed to discharge:', err);
+            setActionError(`Error: ${err.message || 'Failed to discharge patient'}`);
+        } finally {
+            setDischarging(false);
+        }
     };
 
     const handleHandoff = async () => {
+        setDischarging(true);
+        setActionError('');
         try {
             await handoffPatient(patient.id, actionDept, actionNotes, 'Staff');
             setActionType(null);
             setActionNotes('');
-        } catch (err) { console.error('Failed to handoff:', err); }
+        } catch (err) { 
+            console.error('Failed to handoff:', err);
+            setActionError(`Error: ${err.message || 'Failed to handoff patient'}`);
+        } finally {
+            setDischarging(false);
+        }
     };
 
     const priorityInfo = {
@@ -259,17 +281,30 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
                             <div className="workflow-form">
                                 <div className="workflow-form-title">🏠 Discharge Patient</div>
                                 <input className="workflow-input" value={actionNotes}
-                                    onChange={e => setActionNotes(e.target.value)}
-                                    placeholder="Discharge notes (optional)" />
+                                    onChange={e => {
+                                        setActionNotes(e.target.value);
+                                        if (actionError) setActionError('');
+                                    }}
+                                    placeholder="Discharge notes (required)" 
+                                    disabled={discharging} />
+                                {actionError && <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '8px' }}>⚠️ {actionError}</div>}
                                 <div className="workflow-form-actions">
-                                    <button className="workflow-cancel" onClick={() => setActionType(null)}>Cancel</button>
-                                    <button className="workflow-confirm discharge" onClick={handleDischarge}>Confirm Discharge</button>
+                                    <button className="workflow-cancel" onClick={() => {
+                                        setActionType(null);
+                                        setActionError('');
+                                    }} disabled={discharging}>Cancel</button>
+                                    <button className="workflow-confirm discharge" onClick={handleDischarge} disabled={discharging || !actionNotes.trim()}>
+                                        {discharging ? 'Discharging...' : 'Confirm Discharge'}
+                                    </button>
                                 </div>
                             </div>
                         ) : (
                             <div className="workflow-form">
                                 <div className="workflow-form-title">🔀 Handoff Patient</div>
-                                <select className="workflow-input" value={actionDept} onChange={e => setActionDept(e.target.value)}>
+                                <select className="workflow-input" value={actionDept} onChange={e => {
+                                    setActionDept(e.target.value);
+                                    if (actionError) setActionError('');
+                                }} disabled={discharging}>
                                     <option value="ICU">ICU</option>
                                     <option value="Surgery">Surgery</option>
                                     <option value="Cardiology">Cardiology</option>
@@ -278,11 +313,21 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
                                     <option value="Pediatrics">Pediatrics</option>
                                 </select>
                                 <input className="workflow-input" value={actionNotes}
-                                    onChange={e => setActionNotes(e.target.value)}
-                                    placeholder="Handoff notes (optional)" />
+                                    onChange={e => {
+                                        setActionNotes(e.target.value);
+                                        if (actionError) setActionError('');
+                                    }}
+                                    placeholder="Handoff notes (optional)" 
+                                    disabled={discharging} />
+                                {actionError && <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '8px' }}>⚠️ {actionError}</div>}
                                 <div className="workflow-form-actions">
-                                    <button className="workflow-cancel" onClick={() => setActionType(null)}>Cancel</button>
-                                    <button className="workflow-confirm handoff" onClick={handleHandoff}>Confirm Handoff</button>
+                                    <button className="workflow-cancel" onClick={() => {
+                                        setActionType(null);
+                                        setActionError('');
+                                    }} disabled={discharging}>Cancel</button>
+                                    <button className="workflow-confirm handoff" onClick={handleHandoff} disabled={discharging}>
+                                        {discharging ? 'Processing...' : 'Confirm Handoff'}
+                                    </button>
                                 </div>
                             </div>
                         )}
