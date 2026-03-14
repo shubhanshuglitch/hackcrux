@@ -5,6 +5,11 @@ er-triage-backend/.env
 
 # Node modules
 er-triage-frontend/node_modules/
+er-triage-frontend/dist/
+
+# Lockfiles
+package-lock.json
+er-triage-frontend/package-lock.json
 
 # IDE
 .idea/
