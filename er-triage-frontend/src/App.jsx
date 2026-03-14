@@ -16,7 +16,7 @@ import { getStoredToken, getStoredUser, clearAuth } from './api/authApi.js';
 
 const RECYCLE_BIN_ACCESS_ROLES = ['ADMIN', 'DOCTOR', 'SUPERVISOR'];
 const ASSIGNED_TASK_ACCESS_ROLES = ['ADMIN', 'DOCTOR', 'NURSE'];
-const RESOURCE_ALLOCATION_ACCESS_ROLES = ['ADMIN', 'SUPERVISOR', 'NURSE', 'RECEPTIONIST'];
+const RESOURCE_ALLOCATION_ACCESS_ROLES = ['ADMIN', 'SUPERVISOR', 'RECEPTIONIST'];
 const STAFF_DIRECTORY_ACCESS_ROLES = ['ADMIN', 'SUPERVISOR'];
 const STAFF_MANAGEMENT_ACCESS_ROLES = ['ADMIN', 'SUPERVISOR'];
 
@@ -184,13 +184,18 @@ export default function App() {
                 <div className="tab-navigation">
                     <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
                         onClick={() => setActiveTab('triage')}>🩺 Patient Triage</button>
-                    
-                    <button className={`tab-btn ${activeTab === 'resource' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('resource')}>🏥 Resource Allocation</button>
-                    <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
-                    <button className={`tab-btn ${activeTab === 'staffMgmt' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('staffMgmt')}>🧾 Staff Management Directory</button>
+                    {resourceAllowed && (
+                        <button className={`tab-btn ${activeTab === 'resource' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('resource')}>🏥 Resource Allocation</button>
+                    )}
+                    {staffDirectoryAllowed && (
+                        <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
+                    )}
+                    {staffMgmtAllowed && (
+                        <button className={`tab-btn ${activeTab === 'staffMgmt' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('staffMgmt')}>🧾 Staff Management Directory</button>
+                    )}
                     {assignedTasksAllowed && (
                         <button className={`tab-btn ${activeTab === 'assignedTasks' ? 'active' : ''}`}
                             onClick={() => setActiveTab('assignedTasks')}>✅ My Worklist</button>
