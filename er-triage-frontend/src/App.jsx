@@ -7,7 +7,14 @@ import UserManagement from './components/UserManagement.jsx';
 import Analytics from './components/Analytics.jsx';
 import RecycleBin from './components/RecycleBin.jsx';
 import Login from './components/Login.jsx';
+import { fetchRecycleBinPatients } from './api/patientApi.js';
 import { getStoredToken, getStoredUser, clearAuth } from './api/authApi.js';
+
+const RECYCLE_BIN_ACCESS_ROLES = ['ADMIN', 'DOCTOR', 'SUPERVISOR'];
+
+function canAccessRecycleBin(user) {
+    return RECYCLE_BIN_ACCESS_ROLES.includes(user?.role);
+}
 
 export default function App() {
     const [user, setUser] = useState(getStoredUser);
@@ -16,8 +23,10 @@ export default function App() {
     const [newPatient, setNewPatient] = useState(null);
     const [activeTab, setActiveTab] = useState('triage');
     const [targetPatientId, setTargetPatientId] = useState(null);
+    const [recycleBinCount, setRecycleBinCount] = useState(0);
     const shellRef = useRef(null);
     const frameRef = useRef(null);
+    const recycleBinAllowed = canAccessRecycleBin(user);
 
     const handleLogin = (userData) => {
         setUser(userData);
@@ -28,6 +37,8 @@ export default function App() {
         clearAuth();
         setUser(null);
         setIsAuthenticated(false);
+        setRecycleBinCount(0);
+        setActiveTab('triage');
     };
 
     const handlePatientAdded = (patient) => {
@@ -43,6 +54,28 @@ export default function App() {
         setTimeout(() => setNewPatient(null), 100);
     }, []);
 
+    const refreshRecycleBinCount = useCallback(async () => {
+        if (!recycleBinAllowed || !getStoredToken()) {
+            setRecycleBinCount(0);
+            return;
+        }
+
+        try {
+            const archivedPatients = await fetchRecycleBinPatients();
+            setRecycleBinCount(Array.isArray(archivedPatients) ? archivedPatients.length : 0);
+        } catch {
+            setRecycleBinCount(0);
+        }
+    }, [recycleBinAllowed]);
+
+    const handlePatientArchived = useCallback(() => {
+        setRecycleBinCount(prev => prev + 1);
+    }, []);
+
+    const handleRecycleBinCountChange = useCallback((count) => {
+        setRecycleBinCount(Math.max(0, count));
+    }, []);
+
     const handlePatientsChange = useCallback((updatedList) => {
         setPatients(updatedList);
     }, []);
@@ -50,6 +83,20 @@ export default function App() {
     useEffect(() => {
         return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
     }, []);
+
+    useEffect(() => {
+        if (!recycleBinAllowed) {
+            setRecycleBinCount(0);
+            if (activeTab === 'recycle') {
+                setActiveTab('triage');
+            }
+            return;
+        }
+
+        refreshRecycleBinCount();
+        const interval = setInterval(refreshRecycleBinCount, 30000);
+        return () => clearInterval(interval);
+    }, [activeTab, recycleBinAllowed, refreshRecycleBinCount]);
 
     const handlePatientSearchSelect = (patientId) => {
         setTargetPatientId(patientId);
@@ -96,8 +143,13 @@ export default function App() {
                 <div className="tab-navigation">
                     <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
                         onClick={() => setActiveTab('triage')}>🩺 Patient Triage</button>
-                    <button className={`tab-btn ${activeTab === 'recycle' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('recycle')}>♻️ Recycle Bin</button>
+                    {recycleBinAllowed && (
+                        <button className={`tab-btn ${activeTab === 'recycle' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('recycle')}>
+                            <span>♻️ Recycle Bin</span>
+                            <span className="tab-badge">{recycleBinCount}</span>
+                        </button>
+                    )}
                     <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
                         onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
                     <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
@@ -113,6 +165,8 @@ export default function App() {
                                     onPatientsChange={handlePatientsChange}
                                     highlightPatientId={targetPatientId}
                                     onHighlighted={handleTargetPatientScrolled}
+                                    currentUser={user}
+                                    onPatientArchived={handlePatientArchived}
                                 />
                             </div>
                             <div className="right-section">
@@ -123,7 +177,7 @@ export default function App() {
                 ) : activeTab === 'users' ? (
                     <UserManagement />
                 ) : activeTab === 'recycle' ? (
-                    <RecycleBin onPatientRestored={handlePatientRestored} />
+                    <RecycleBin onPatientRestored={handlePatientRestored} onCountChange={handleRecycleBinCountChange} />
                 ) : activeTab === 'analytics' ? (
                     <Analytics />
                 ) : null}

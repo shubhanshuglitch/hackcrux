@@ -58,7 +58,7 @@ function getSlaStatus(patient, nowTs) {
     };
 }
 
-function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, collapsed, onToggleCollapse }) {
+function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, onDragEnd, collapsed, onToggleCollapse }) {
 
     const [nowTs, setNowTs] = useState(Date.now());
 
@@ -147,7 +147,7 @@ function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, c
                     {/* Dismiss button — triggers modal in KanbanBoard, not inline */}
                     <button
                         className="card-dismiss"
-                        onClick={() => onDismiss(patient.id)}
+                        onClick={() => onArchive(patient)}
                         title="Dismiss"
                         id={`dismiss-${patient.id}`}
                     >✕</button>

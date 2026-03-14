@@ -421,6 +421,7 @@
 }
 
 .recycle-bin-symptoms p,
+.recycle-bin-delete-reason p,
 .recycle-bin-vitals p {
   color: #37525f;
   line-height: 1.55;
@@ -3777,6 +3778,9 @@ h5 {
 }
 
 .tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   padding: 14px 28px;
   border-radius: 12px;
   border: 2px solid transparent;
@@ -3807,6 +3811,26 @@ h5 {
 .tab-btn > * {
   position: relative;
   z-index: 1;
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.tab-btn.active .tab-badge {
+  background: rgba(255, 255, 255, 0.92);
+  color: #1e5a7a;
 }
 
 .tab-btn:hover:not(.active) {
@@ -4810,6 +4834,22 @@ h5 {
   justify-content: flex-end;
   gap: 10px;
   padding: 0 24px 20px;
+}
+
+.patient-delete-modal {
+  width: min(92vw, 560px);
+}
+
+.patient-delete-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.patient-delete-textarea {
+  min-height: 112px;
+  resize: vertical;
 }
 
 .user-delete-btn.danger {

@@ -31,7 +31,7 @@ function formatRetention(purgeAt) {
     return `${days}d ${hours}h left`;
 }
 
-export default function RecycleBin({ onPatientRestored }) {
+export default function RecycleBin({ onPatientRestored, onCountChange }) {
     const [archivedPatients, setArchivedPatients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -47,7 +47,9 @@ export default function RecycleBin({ onPatientRestored }) {
 
         try {
             const data = await fetchRecycleBinPatients();
-            setArchivedPatients(Array.isArray(data) ? data : []);
+            const archivedList = Array.isArray(data) ? data : [];
+            setArchivedPatients(archivedList);
+            if (onCountChange) onCountChange(archivedList.length);
             setError('');
         } catch (err) {
             setError(err.message || 'Failed to load recycle bin');
@@ -67,7 +69,11 @@ export default function RecycleBin({ onPatientRestored }) {
         try {
             setRestoringId(entry.id);
             const restoredPatient = await restorePatientFromRecycleBin(entry.id);
-            setArchivedPatients((prev) => prev.filter((item) => item.id !== entry.id));
+            setArchivedPatients((prev) => {
+                const next = prev.filter((item) => item.id !== entry.id);
+                if (onCountChange) onCountChange(next.length);
+                return next;
+            });
             if (onPatientRestored) onPatientRestored(restoredPatient);
         } catch (err) {
             setError(err.message || 'Failed to restore patient');
@@ -132,9 +138,18 @@ export default function RecycleBin({ onPatientRestored }) {
                                             <span>{formatDateTime(entry.deletedAt)}</span>
                                         </div>
                                         <div className="recycle-bin-detail-block">
+                                            <span className="recycle-bin-detail-label">Deleted By</span>
+                                            <span>{entry.deletedBy || 'Staff'}</span>
+                                        </div>
+                                        <div className="recycle-bin-detail-block">
                                             <span className="recycle-bin-detail-label">Permanent Purge</span>
                                             <span>{formatDateTime(entry.purgeAt)}</span>
                                         </div>
+                                    </div>
+
+                                    <div className="recycle-bin-detail-block recycle-bin-delete-reason">
+                                        <span className="recycle-bin-detail-label">Delete Reason</span>
+                                        <p>{entry.deleteReason || 'No reason recorded.'}</p>
                                     </div>
 
                                     <div className="recycle-bin-symptoms">

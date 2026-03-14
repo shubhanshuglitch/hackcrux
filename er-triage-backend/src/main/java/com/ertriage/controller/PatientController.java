@@ -49,9 +49,14 @@ public class PatientController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePatient(@PathVariable String id) {
+    public ResponseEntity<Void> deletePatient(@PathVariable String id, @RequestBody(required = false) Map<String, String> body) {
         try {
-            patientService.deletePatient(id);
+            String deleteReason = body == null ? null : body.get("deleteReason");
+            if (deleteReason == null || deleteReason.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            String deletedBy = body == null ? null : body.get("deletedBy");
+            patientService.deletePatient(id, deleteReason, deletedBy);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();

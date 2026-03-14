@@ -98,6 +98,7 @@ export default function Login({ onLogin }) {
                 <label>Role</label>
                 <select name="role" value={formData.role} onChange={handleChange}>
                   <option value="DOCTOR">Doctor</option>
+                  <option value="SUPERVISOR">Supervisor</option>
                   <option value="NURSE">Nurse</option>
                   <option value="RECEPTIONIST">Receptionist</option>
                   <option value="ADMIN">Administrator</option>
