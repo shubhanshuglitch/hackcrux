@@ -4145,6 +4145,28 @@ h5 {
   letter-spacing: 0.06em;
 }
 
+/* Priority shift label colors */
+.retriage-priority-shift span:not(.shift-arrow) {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 900;
+}
+
+.retriage-result.priority-RED .retriage-priority-shift span:last-child,
+.retriage-priority-shift span.priority-RED {
+  color: #ff4d4d;
+}
+
+.retriage-result.priority-YELLOW .retriage-priority-shift span:last-child,
+.retriage-priority-shift span.priority-YELLOW {
+  color: #ffc107;
+}
+
+.retriage-result.priority-GREEN .retriage-priority-shift span:last-child,
+.retriage-priority-shift span.priority-GREEN {
+  color: #00e676;
+}
+
 .retriage-actions .retriage-submit {
   background: var(--gradient-primary);
   border: 2px solid #5f7892;
