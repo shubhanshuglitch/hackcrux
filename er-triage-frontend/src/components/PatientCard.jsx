@@ -75,7 +75,8 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
     const handleDischarge = async () => {
         try {
             await dischargePatient(patient.id, actionNotes || 'Patient discharged', 'Staff');
-            if (onDismiss) onDismiss(patient.id);
+            setActionType(null);
+            setActionNotes('');
         } catch (err) { console.error('Failed to discharge:', err); }
     };
 
@@ -116,6 +117,13 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
                         {patient.age && <span className="card-age">Age: {patient.age}</span>}
                         <span className="card-id">ID: {patient.id}</span>
                     </div>
+                    {(patient.assignedCareZone || patient.assignedRoom || patient.assignedNurseName) && (
+                        <div className="card-resource-strip">
+                            <span className="card-resource-chip">Zone: {patient.assignedCareZone || 'Pending'}</span>
+                            <span className="card-resource-chip">Room: {patient.assignedRoom || 'Pending'}</span>
+                            <span className="card-resource-chip">Nurse: {patient.assignedNurseName || 'Pending'}</span>
+                        </div>
+                    )}
                 </div>
                 <div className="card-header-actions">
                     <button
@@ -201,6 +209,25 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
                                 <div className="card-field-label">Vitals</div>
                             </div>
                             <div className="card-field-value vitals-display">{patient.vitals}</div>
+                        </div>
+                    )}
+
+                    {(patient.assignedRoom || patient.assignedDoctorName || patient.assignedNurseName) && (
+                        <div className="card-field">
+                            <div className="card-field-header">
+                                <span className="card-field-icon">🧩</span>
+                                <div className="card-field-label">Live Resource Allocation</div>
+                            </div>
+                            <div className="card-field-value">
+                                <div><strong>Zone:</strong> {patient.assignedCareZone || 'Pending'}</div>
+                                <div><strong>Room:</strong> {patient.assignedRoom || 'Pending'}</div>
+                                <div><strong>Doctor:</strong> {patient.assignedDoctorName || 'Unassigned'}</div>
+                                <div><strong>Nurse:</strong> {patient.assignedNurseName || 'Pending'}</div>
+                                <div><strong>Support:</strong> {patient.assignedSupportStaff || 'General support'}</div>
+                                {Array.isArray(patient.assignedEquipment) && patient.assignedEquipment.length > 0 && (
+                                    <div><strong>Equipment:</strong> {patient.assignedEquipment.join(', ')}</div>
+                                )}
+                            </div>
                         </div>
                     )}
 

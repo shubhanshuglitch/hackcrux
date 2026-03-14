@@ -1,4 +1,4 @@
-package com.ertriage.model;
+package main.java.com.ertriage.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;

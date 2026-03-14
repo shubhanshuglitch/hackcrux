@@ -28,18 +28,21 @@ public class PatientService {
     private final AiExtractionService aiExtractionService;
     private final TriageRulesEngine triageRulesEngine;
     private final LocalExtractorService localExtractorService;
+    private final ResourceAllocationService resourceAllocationService;
     private final PatientEventRepository eventRepository;
     private final UserRepository userRepository;
     private final DeletedPatientRepository deletedPatientRepository;
 
     public PatientService(PatientRepository patientRepository, AiExtractionService aiExtractionService,
             TriageRulesEngine triageRulesEngine, LocalExtractorService localExtractorService,
+            ResourceAllocationService resourceAllocationService,
             PatientEventRepository eventRepository, UserRepository userRepository,
             DeletedPatientRepository deletedPatientRepository) {
         this.patientRepository = patientRepository;
         this.aiExtractionService = aiExtractionService;
         this.triageRulesEngine = triageRulesEngine;
         this.localExtractorService = localExtractorService;
+        this.resourceAllocationService = resourceAllocationService;
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
         this.deletedPatientRepository = deletedPatientRepository;
@@ -71,45 +74,27 @@ public class PatientService {
         else if (ageObj instanceof Number)
             age = ((Number) ageObj).intValue();
 
+        String recommendedSpec = (String) extractedData.getOrDefault("recommended_specialization", "Emergency Medicine");
+
         Patient patient = Patient.builder()
                 .name(extractedName).age(age).symptoms(symptoms)
                 .vitals(vitals).priority(priority).rawInput(rawInput)
                 .timestamp(LocalDateTime.now()).build();
 
-        // --- Doctor assignment logic ---
-        String recommendedSpec = (String) extractedData.getOrDefault("recommended_specialization", "Emergency Medicine");
-        List<User> activeDoctors = userRepository.findByRoleAndActiveTrue(User.Role.DOCTOR);
-        User assignedDoctor = null;
-
-        // Try exact specialization match (case-insensitive)
-        String specLower = recommendedSpec.toLowerCase();
-        for (User doc : activeDoctors) {
-            if (doc.getSpecialization() != null && doc.getSpecialization().toLowerCase().contains(specLower)) {
-                assignedDoctor = doc;
-                break;
-            }
-        }
-        // Fallback: assign the first available doctor
-        if (assignedDoctor == null && !activeDoctors.isEmpty()) {
-            assignedDoctor = activeDoctors.get(0);
-        }
-
-        if (assignedDoctor != null) {
-            patient.setAssignedDoctorName(assignedDoctor.getFullName());
-            patient.setAssignedDoctorSpecialization(
-                    assignedDoctor.getSpecialization() != null ? assignedDoctor.getSpecialization() : recommendedSpec);
-        } else {
-            patient.setAssignedDoctorName("Unassigned");
-            patient.setAssignedDoctorSpecialization(recommendedSpec);
-        }
+        resourceAllocationService.assignResources(patient, recommendedSpec);
 
         Patient saved = patientRepository.save(patient);
 
         logEvent(saved.getId(), PatientEvent.EventType.INTAKE,
                 "Patient admitted via voice triage. Priority: " + priority.name()
                         + ". Assigned to: " + patient.getAssignedDoctorName()
-                        + " (" + patient.getAssignedDoctorSpecialization() + ")",
+                        + " (" + patient.getAssignedDoctorSpecialization() + ")"
+                        + ". Room: " + patient.getAssignedRoom(),
                 null, priority.name(), "System (AI Triage)");
+
+        logEvent(saved.getId(), PatientEvent.EventType.RESOURCE_ALLOCATION,
+                resourceAllocationService.describeAllocation(saved),
+                null, priority.name(), "System (Allocator)");
 
         return toDTO(saved);
     }
@@ -226,6 +211,7 @@ public class PatientService {
                 .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
 
         String oldPriority = patient.getPriority() != null ? patient.getPriority().name() : "GREEN";
+        String oldAllocation = resourceAllocationService.describeAllocation(patient);
 
         String newSymptoms = (updatedSymptoms != null && !updatedSymptoms.trim().isEmpty())
                 ? updatedSymptoms.trim()
@@ -243,9 +229,11 @@ public class PatientService {
         newSymptoms, newVitals);
 
         String aiPriority = "YELLOW";
+        String recommendedSpec = patient.getAssignedDoctorSpecialization();
         try {
             Map<String, Object> aiData = aiExtractionService.extractPatientData(combinedInput);
             aiPriority = (String) aiData.getOrDefault("priority", "YELLOW");
+            recommendedSpec = (String) aiData.getOrDefault("recommended_specialization", recommendedSpec);
         } catch (Exception e) {
             /* fallback */ }
 
@@ -255,6 +243,8 @@ public class PatientService {
         patient.setPriority(newPriority);
         patient.setRawInput(patient.getRawInput() + " [RE-TRIAGED: " +
                 java.time.LocalDateTime.now().toString() + "]");
+
+        resourceAllocationService.assignResources(patient, recommendedSpec);
 
         Patient saved = patientRepository.save(patient);
 
@@ -268,28 +258,44 @@ public class PatientService {
                     oldPriority, newPriority.name(), "Triage Nurse");
         }
 
+        String newAllocation = resourceAllocationService.describeAllocation(saved);
+        if (!oldAllocation.equals(newAllocation)) {
+            logEvent(saved.getId(), PatientEvent.EventType.RESOURCE_ALLOCATION,
+                    newAllocation,
+                    oldPriority, newPriority.name(), "System (Allocator)");
+        }
+
         return toDTO(saved);
     }
 
 
-  public PatientDTO updatePriority(String id, String newPriorityStr) {
-    Patient patient = patientRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
+    public PatientDTO updatePriority(String id, String newPriorityStr) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Patient not found with id: " + id));
 
-    String oldPriority = patient.getPriority() != null ? patient.getPriority().name() : "GREEN";
-    Patient.Priority newPriority = Patient.Priority.valueOf(newPriorityStr);
+        String oldPriority = patient.getPriority() != null ? patient.getPriority().name() : "GREEN";
+        String oldAllocation = resourceAllocationService.describeAllocation(patient);
+        Patient.Priority newPriority = Patient.Priority.valueOf(newPriorityStr);
 
-    patient.setPriority(newPriority);
-    Patient saved = patientRepository.save(patient);
+        patient.setPriority(newPriority);
+        resourceAllocationService.assignResources(patient, patient.getAssignedDoctorSpecialization());
+        Patient saved = patientRepository.save(patient);
 
-    if (!oldPriority.equals(newPriority.name())) {
-        logEvent(saved.getId(), PatientEvent.EventType.PRIORITY_CHANGE,
-                "Priority changed via drag-and-drop from " + oldPriority + " to " + newPriority.name(),
-                oldPriority, newPriority.name(), "Staff (Manual)");
+        if (!oldPriority.equals(newPriority.name())) {
+            logEvent(saved.getId(), PatientEvent.EventType.PRIORITY_CHANGE,
+                    "Priority changed via drag-and-drop from " + oldPriority + " to " + newPriority.name(),
+                    oldPriority, newPriority.name(), "Staff (Manual)");
+        }
+
+        String newAllocation = resourceAllocationService.describeAllocation(saved);
+        if (!oldAllocation.equals(newAllocation)) {
+            logEvent(saved.getId(), PatientEvent.EventType.RESOURCE_ALLOCATION,
+                    newAllocation,
+                    oldPriority, newPriority.name(), "System (Allocator)");
+        }
+
+        return toDTO(saved);
     }
-
-    return toDTO(saved);
-}
 
     private void logEvent(String patientId, PatientEvent.EventType type,
             String description, String oldPriority, String newPriority, String performedBy) {

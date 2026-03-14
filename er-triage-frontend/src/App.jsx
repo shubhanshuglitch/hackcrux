@@ -6,6 +6,7 @@ import TaskManager from './components/TaskManager.jsx';
 import UserManagement from './components/UserManagement.jsx';
 import Analytics from './components/Analytics.jsx';
 import RecycleBin from './components/RecycleBin.jsx';
+import ResourceAllocation from './components/ResourceAllocation.jsx';
 import Login from './components/Login.jsx';
 import { fetchRecycleBinPatients } from './api/patientApi.js';
 import { getStoredToken, getStoredUser, clearAuth } from './api/authApi.js';
@@ -150,6 +151,8 @@ export default function App() {
                             <span className="tab-badge">{recycleBinCount}</span>
                         </button>
                     )}
+                    <button className={`tab-btn ${activeTab === 'resource' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('resource')}>🏥 Resource Allocation</button>
                     <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
                         onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
                     <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
@@ -178,6 +181,8 @@ export default function App() {
                     <UserManagement />
                 ) : activeTab === 'recycle' ? (
                     <RecycleBin onPatientRestored={handlePatientRestored} onCountChange={handleRecycleBinCountChange} />
+                ) : activeTab === 'resource' ? (
+                    <ResourceAllocation />
                 ) : activeTab === 'analytics' ? (
                     <Analytics />
                 ) : null}

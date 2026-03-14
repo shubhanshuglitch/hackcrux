@@ -23,7 +23,7 @@ public class PatientEvent {
     private LocalDateTime timestamp;
 
     public enum EventType {
-        INTAKE, REASSESSMENT, PRIORITY_CHANGE, HANDOFF, DISCHARGE
+        INTAKE, REASSESSMENT, PRIORITY_CHANGE, RESOURCE_ALLOCATION, HANDOFF, DISCHARGE
     }
 
     public PatientEvent() {
