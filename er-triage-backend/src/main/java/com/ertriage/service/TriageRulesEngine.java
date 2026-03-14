@@ -53,14 +53,14 @@ public class TriageRulesEngine {
      */
     public Patient.Priority calculatePriority(String symptoms, String vitals, String rawInput, String aiSuggested) {
         // Use rawInput as the primary text for classification (preserves negations)
-        String classifyText = (rawInput != null ? rawInput : "").toLowerCase();
+        String classifyText = (symptoms != null ? symptoms : "").toLowerCase()
+        + " " + (rawInput != null ? rawInput : "").toLowerCase();
 
-        // --- Check vital sign thresholds (from vitals + rawInput) ---
-        String vitalsText = ((vitals != null ? vitals : "") + " " + classifyText).toLowerCase();
-        if (isRedByVitals(vitalsText)) {
-            return Patient.Priority.RED;
-        }
-
+// --- Check vital sign thresholds (vitals field ONLY — not rawInput) ---
+String vitalsText = (vitals != null ? vitals : "").toLowerCase();
+if (isRedByVitals(vitalsText)) {
+    return Patient.Priority.RED;
+}
         // --- Check RED symptom keywords (negation-aware, on rawInput) ---
         for (String keyword : RED_SYMPTOM_KEYWORDS) {
             if (containsKeyword(classifyText, keyword)) {

@@ -250,7 +250,7 @@ public class PatientService {
             /* fallback */ }
 
         Patient.Priority newPriority = triageRulesEngine.calculatePriority(
-                newSymptoms, newVitals, combinedInput, aiPriority);
+        newSymptoms, newVitals, null, aiPriority);
 
         patient.setPriority(newPriority);
         patient.setRawInput(patient.getRawInput() + " [RE-TRIAGED: " +
