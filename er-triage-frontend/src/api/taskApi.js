@@ -8,11 +8,11 @@ export async function fetchTasks() {
   return response.json();
 }
 
-export async function createTask(title, priority = 'normal') {
+export async function createTask(title, priority = 'normal', assignedTo = null) {
   const response = await fetch(`${API_BASE}/tasks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify({ title, priority }),
+    body: JSON.stringify({ title, priority, assignedTo }),
   });
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
   return response.json();
