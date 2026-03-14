@@ -1,0 +1,15 @@
+# Build outputs
+backend/target/
+backend/data/
+
+# Node modules
+frontend/node_modules/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
