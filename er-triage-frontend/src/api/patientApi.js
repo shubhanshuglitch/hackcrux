@@ -26,12 +26,22 @@ export async function searchPatients(query) {
   return response.json();
 }
 
-export async function dismissPatient(id) {
+export async function dismissPatient(id, deleteReason, deletedBy) {
+  if (!deleteReason || !deleteReason.trim()) {
+    throw new Error('Delete reason is required.');
+  }
+
   const response = await fetch(`${API_BASE}/patients/${id}`, {
     method: 'DELETE',
-    headers: { ...getAuthHeaders() },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ deleteReason, deletedBy }),
   });
-  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  if (!response.ok) {
+    if (response.status === 400) {
+      throw new Error('Delete reason is required.');
+    }
+    throw new Error(`Server error: ${response.status}`);
+  }
 }
 
 export async function fetchRecycleBinPatients() {

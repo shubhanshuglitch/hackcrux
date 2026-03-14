@@ -33,7 +33,7 @@ public class User {
     private LocalDateTime lastLogin;
 
     public enum Role {
-        ADMIN, DOCTOR, NURSE, RECEPTIONIST
+        ADMIN, DOCTOR, SUPERVISOR, NURSE, RECEPTIONIST
     }
 
     public User() {

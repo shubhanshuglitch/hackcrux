@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { fetchPatients, retriagePatient, updatePatientPriority, dismissPatient } from '../api/patientApi.js';
 import PatientCard from './PatientCard.jsx';
 import ReTriageModal from './ReTriageModal.jsx';
@@ -45,12 +46,16 @@ function saveCollapsedCards(state) {
 }
 // ────────────────────────────────────────────────────────────────────────────
 
-export default function KanbanBoard({ newPatient, onPatientsChange, highlightPatientId, onHighlighted }) {
+export default function KanbanBoard({ newPatient, onPatientsChange, highlightPatientId, onHighlighted, currentUser, onPatientArchived }) {
     const [patients, setPatients] = useState([]);
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [nowTs, setNowTs] = useState(Date.now());
     const [retriageModal, setReTriageModal] = useState(null);
     const [dragOverCol, setDragOverCol] = useState(null);
+    const [deleteCandidate, setDeleteCandidate] = useState(null);
+    const [deleteReason, setDeleteReason] = useState('');
+    const [deleteError, setDeleteError] = useState('');
+    const [deleting, setDeleting] = useState(false);
 
     // ── NEW: initialise from localStorage so state survives navigation ───────
     const [collapsedCards, setCollapsedCards] = useState(loadCollapsedCards);
@@ -118,18 +123,45 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
         }
     }, [highlightPatientId, patients, onHighlighted]);
 
-    const handleDismiss = async (id) => {
+    const removePatientFromBoard = useCallback((id) => {
+        setPatients(prev => prev.filter(p => p.id !== id));
+        setCollapsedCards(prev => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+        });
+    }, []);
+
+    const handleArchiveRequest = useCallback((patient) => {
+        setDeleteCandidate(patient);
+        setDeleteReason('');
+        setDeleteError('');
+    }, []);
+
+    const handleDismiss = async () => {
+        if (!deleteCandidate?.id) return;
+        if (!deleteReason.trim()) {
+            setDeleteError('Delete reason is required.');
+            return;
+        }
+
         try {
-            await dismissPatient(id);
-            setPatients(prev => prev.filter(p => p.id !== id));
-            // Clean up persisted collapse entry for dismissed patient
-            setCollapsedCards(prev => {
-                const next = { ...prev };
-                delete next[id];
-                return next;
-            });
+            setDeleting(true);
+            await dismissPatient(
+                deleteCandidate.id,
+                deleteReason.trim(),
+                currentUser?.fullName || currentUser?.username || 'Staff'
+            );
+            removePatientFromBoard(deleteCandidate.id);
+            setDeleteCandidate(null);
+            setDeleteReason('');
+            setDeleteError('');
+            if (onPatientArchived) onPatientArchived();
         } catch (err) {
             console.error('Failed to dismiss patient:', err);
+            setDeleteError(err.message || 'Failed to archive patient');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -248,7 +280,8 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
                                             key={patient.id}
                                             patient={patient}
                                             nowTs={nowTs}
-                                            onDismiss={handleDismiss}
+                                            onArchive={handleArchiveRequest}
+                                            onDismiss={removePatientFromBoard}
                                             onRetriage={handleRetriage}
                                             onDragStart={handleDragStart}
                                             onDragEnd={handleDragEnd}
@@ -267,6 +300,46 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
                 <ReTriageModal patient={retriageModal}
                     onClose={() => setReTriageModal(null)}
                     onRetriage={handleReTriageSubmit} />
+            )}
+
+            {deleteCandidate && createPortal(
+                <div className="staff-form-overlay" onClick={() => !deleting && setDeleteCandidate(null)}>
+                    <div className="delete-confirm-modal patient-delete-modal" onClick={e => e.stopPropagation()}>
+                        <div className="staff-form-header delete-header">
+                            <h3>Archive Patient Record</h3>
+                            <button className="staff-form-close" onClick={() => !deleting && setDeleteCandidate(null)}>✕</button>
+                        </div>
+                        <div className="delete-confirm-body">
+                            <p>
+                                Move <strong>{deleteCandidate.name || 'Unknown Patient'}</strong> to the recycle bin?
+                            </p>
+                            <p className="delete-note">The record stays recoverable for 10 days before permanent purge.</p>
+                            <div className="patient-delete-form-field">
+                                <label htmlFor="patient-delete-reason" className="recycle-bin-detail-label">Delete Reason</label>
+                                <textarea
+                                    id="patient-delete-reason"
+                                    className="workflow-input patient-delete-textarea"
+                                    value={deleteReason}
+                                    onChange={(e) => {
+                                        setDeleteReason(e.target.value);
+                                        if (deleteError) setDeleteError('');
+                                    }}
+                                    placeholder="Why is this patient being removed from the active queue?"
+                                    rows={4}
+                                    disabled={deleting}
+                                />
+                            </div>
+                            {deleteError && <div className="form-error">⚠️ {deleteError}</div>}
+                        </div>
+                        <div className="delete-confirm-actions">
+                            <button className="form-cancel-btn" onClick={() => !deleting && setDeleteCandidate(null)}>Cancel</button>
+                            <button className="user-delete-btn danger" onClick={handleDismiss} disabled={deleting}>
+                                {deleting ? 'Archiving...' : 'Move to Recycle Bin'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body,
             )}
         </div>
     );
