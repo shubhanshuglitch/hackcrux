@@ -45,6 +45,19 @@ public class TriageRulesEngine {
             "confusion", "disoriented", "abdominal cramps",
             "chest discomfort");
 
+        // Obstetric emergency triggers -> RED
+        private static final List<String> OBSTETRIC_RED_KEYWORDS = List.of(
+            "postpartum hemorrhage", "eclampsia", "seizure in pregnancy",
+            "placental abruption", "ruptured ectopic", "ectopic rupture",
+            "heavy vaginal bleeding in pregnancy");
+
+        // Pregnancy-related triggers -> YELLOW (unless already RED by vitals/other rules)
+        private static final List<String> OBSTETRIC_YELLOW_KEYWORDS = List.of(
+            "pregnancy", "pregnant", "gestation", "antenatal", "prenatal",
+            "obstetric", "labor pain", "labour pain", "contractions",
+            "reduced fetal movement", "reduced foetal movement", "water broke",
+            "vaginal bleeding", "miscarriage", "ectopic", "pelvic pain in pregnancy");
+
     /**
      * Use rawInput ONLY for keyword matching — it preserves the full clinical
      * context including negations ("no chest pain", "bleeding stopped", etc.).
@@ -68,8 +81,22 @@ if (isRedByVitals(vitalsText)) {
             }
         }
 
+        // --- Check obstetric RED keywords ---
+        for (String keyword : OBSTETRIC_RED_KEYWORDS) {
+            if (containsKeyword(classifyText, keyword)) {
+                return Patient.Priority.RED;
+            }
+        }
+
         // --- Check YELLOW symptom keywords (negation-aware, on rawInput) ---
         for (String keyword : YELLOW_SYMPTOM_KEYWORDS) {
+            if (containsKeyword(classifyText, keyword)) {
+                return Patient.Priority.YELLOW;
+            }
+        }
+
+        // --- Check pregnancy-related YELLOW keywords ---
+        for (String keyword : OBSTETRIC_YELLOW_KEYWORDS) {
             if (containsKeyword(classifyText, keyword)) {
                 return Patient.Priority.YELLOW;
             }

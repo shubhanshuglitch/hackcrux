@@ -33,6 +33,7 @@ const DEPARTMENTS = [
     'ENT (Otolaryngology)',
     'Hematology',
     'Endocrinology',
+    'Gynecology',
 ];
 
 const SPECIALIZATIONS = [
@@ -46,11 +47,12 @@ const SPECIALIZATIONS = [
     'Allergist',
     'Emergency Medicine',
     'General Physician',
+    'Gynecologist',
 ];
 
 const emptyForm = { username: '', fullName: '', email: '', role: 'DOCTOR', department: 'Emergency Medicine', specialization: '', active: true };
 
-export default function UserManagement() {
+export default function UserManagement({ currentUser }) {
     const [users, setUsers] = useState([]);
     const [filter, setFilter] = useState('ALL');
     const [loading, setLoading] = useState(true);
@@ -61,6 +63,7 @@ export default function UserManagement() {
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
     const [deleteCandidate, setDeleteCandidate] = useState(null);
+    const canAddStaff = currentUser?.role === 'ADMIN';
 
     useEffect(() => { loadUsers(); }, []);
 
@@ -84,6 +87,7 @@ export default function UserManagement() {
     };
 
     const openAddForm = () => {
+        if (!canAddStaff) return;
         setEditingUser(null);
         setFormData({ ...emptyForm });
         setFormError('');
@@ -137,6 +141,9 @@ export default function UserManagement() {
                 const updated = await updateUser(editingUser.id, formData);
                 setUsers(prev => prev.map(u => u.id === editingUser.id ? updated : u));
             } else {
+                if (!canAddStaff) {
+                    throw new Error('Only admin users can add staff.');
+                }
                 const created = await createUser(formData);
                 setUsers(prev => [...prev, created]);
             }
@@ -185,9 +192,11 @@ export default function UserManagement() {
                         </button>
                     ))}
                 </div>
-                <button className="add-staff-btn" onClick={openAddForm}>
-                    <span>➕</span> Add Staff
-                </button>
+                {canAddStaff && (
+                    <button className="add-staff-btn" onClick={openAddForm}>
+                        <span>➕</span> Add Staff
+                    </button>
+                )}
             </div>
 
             {/* Add / Edit Form */}
