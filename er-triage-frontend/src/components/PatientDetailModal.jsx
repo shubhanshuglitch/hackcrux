@@ -1,8 +1,9 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 export default function PatientDetailModal({ patient, onClose }) {
     if (!patient) return null;
-    return (
+    return createPortal(
         <div className="detail-overlay" onClick={onClose}>
             <div className="detail-modal" onClick={e => e.stopPropagation()}>
 

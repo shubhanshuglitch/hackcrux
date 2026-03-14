@@ -20,6 +20,17 @@ import java.util.stream.Collectors;
 @Service
 public class ResourceAllocationService {
 
+    private static final List<String> PREGNANCY_KEYWORDS = List.of(
+        "pregnant", "pregnancy", "expecting", "gestation", "antenatal", "prenatal", "obstetric", "obstetrics",
+        "ob gyn", "obgyn", "gyne", "gynae", "labor", "labour", "contractions", "trimester",
+        "fetal movement", "foetal movement", "reduced fetal movement", "reduced foetal movement",
+        "postpartum", "miscarriage", "ectopic", "amenorrhea", "amenorrhoea", "missed period",
+        "lmp", "gravida", "para", "hyperemesis gravidarum", "pregnancy test positive",
+        "vaginal bleeding in pregnancy", "bleeding during pregnancy");
+
+    private static final List<String> NEGATION_HINTS = List.of(
+        "no ", "not ", "without ", "denies ", "denying ", "negative for ");
+
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
     private final ResourceAllocationCatalogService resourceAllocationCatalogService;
@@ -94,18 +105,25 @@ public class ResourceAllocationService {
 
     private void assignDoctor(Patient patient, List<Patient> activePatients, String preferredSpecialization) {
         List<User> activeDoctors = userRepository.findByRoleAndActiveTrue(User.Role.DOCTOR);
-        String specialization = preferredSpecialization == null || preferredSpecialization.isBlank()
-                ? "Emergency Medicine"
-                : preferredSpecialization.trim();
+        boolean pregnancyCase = containsPregnancySignal(patient);
+        String specialization = resolveDoctorSpecialization(patient, preferredSpecialization);
 
         List<User> matchingDoctors = activeDoctors.stream()
                 .filter(doc -> doc.getSpecialization() != null
-                        && doc.getSpecialization().toLowerCase(Locale.ROOT)
-                                .contains(specialization.toLowerCase(Locale.ROOT)))
+                && isSpecializationMatch(doc.getSpecialization(), specialization))
                 .collect(Collectors.toList());
 
-        User assignedDoctor = chooseLeastLoadedUser(matchingDoctors.isEmpty() ? activeDoctors : matchingDoctors,
-                activePatients, Patient::getAssignedDoctorName);
+        List<User> doctorPool;
+        if (!matchingDoctors.isEmpty()) {
+            doctorPool = matchingDoctors;
+        } else if (pregnancyCase) {
+            // For obstetric cases, avoid assigning an unrelated specialty as fallback.
+            doctorPool = List.of();
+        } else {
+            doctorPool = activeDoctors;
+        }
+
+        User assignedDoctor = chooseLeastLoadedUser(doctorPool, activePatients, Patient::getAssignedDoctorName);
 
         if (assignedDoctor != null) {
             patient.setAssignedDoctorName(assignedDoctor.getFullName());
@@ -115,6 +133,59 @@ public class ResourceAllocationService {
             patient.setAssignedDoctorName("Unassigned");
             patient.setAssignedDoctorSpecialization(specialization);
         }
+    }
+
+    private String resolveDoctorSpecialization(Patient patient, String preferredSpecialization) {
+        if (containsPregnancySignal(patient)) {
+            return "Gynecologist";
+        }
+
+        if (preferredSpecialization == null || preferredSpecialization.isBlank()) {
+            return "Emergency Medicine";
+        }
+        return preferredSpecialization.trim();
+    }
+
+    private boolean containsPregnancySignal(Patient patient) {
+        String combined = ((patient.getSymptoms() == null ? "" : patient.getSymptoms()) + " "
+                + (patient.getVitals() == null ? "" : patient.getVitals()) + " "
+                + (patient.getRawInput() == null ? "" : patient.getRawInput())).toLowerCase(Locale.ROOT);
+
+        for (String keyword : PREGNANCY_KEYWORDS) {
+            int index = combined.indexOf(keyword);
+            while (index >= 0) {
+                String contextBefore = combined.substring(Math.max(0, index - 25), index);
+                boolean negated = NEGATION_HINTS.stream().anyMatch(contextBefore::contains);
+                if (!negated) {
+                    return true;
+                }
+                index = combined.indexOf(keyword, index + keyword.length());
+            }
+        }
+        return false;
+    }
+
+    private boolean isSpecializationMatch(String doctorSpecialization, String requestedSpecialization) {
+        String doc = normalizeSpecialization(doctorSpecialization);
+        String req = normalizeSpecialization(requestedSpecialization);
+
+        if (doc.isBlank() || req.isBlank()) {
+            return false;
+        }
+
+        boolean gynRequest = req.contains("gynec") || req.contains("obstet") || req.contains("obgyn")
+                || req.contains("pregnan");
+        if (gynRequest) {
+            return doc.contains("gynec") || doc.contains("obstet") || doc.contains("obgyn");
+        }
+
+        return doc.contains(req) || req.contains(doc);
+    }
+
+    private String normalizeSpecialization(String value) {
+        return value == null
+                ? ""
+                : value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").trim();
     }
 
     private void assignNurse(Patient patient, List<Patient> activePatients) {

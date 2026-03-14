@@ -8,6 +8,7 @@ export default function TaskManager() {
     const [expanded, setExpanded] = useState(false);
     const [title, setTitle] = useState('');
     const [priority, setPriority] = useState('normal');
+    const [assignedTo, setAssignedTo] = useState('');
 
     const loadTasks = useCallback(async () => {
         try {
@@ -24,9 +25,10 @@ export default function TaskManager() {
     const handleAdd = async () => {
         if (!title.trim()) return;
         try {
-            const task = await createTask(title.trim(), priority);
+            const task = await createTask(title.trim(), priority, assignedTo.trim() || null);
             setTasks(prev => [task, ...prev]);
             setTitle('');
+            setAssignedTo('');
             setExpanded(false);
         } catch (err) { console.error('Failed to create task:', err); }
     };
@@ -77,6 +79,12 @@ export default function TaskManager() {
                             <option value="normal">🟡 Normal Priority</option>
                             <option value="low">🟢 Low Priority</option>
                         </select>
+                        <input
+                            className="task-input"
+                            value={assignedTo}
+                            onChange={e => setAssignedTo(e.target.value)}
+                            placeholder="Assign to (username/full name)"
+                        />
                         <button className="task-add-btn" onClick={handleAdd} disabled={!title.trim()}>
                             <span className="task-add-icon">➕</span> Add Task
                         </button>
@@ -111,6 +119,7 @@ export default function TaskManager() {
                                     <span className="task-priority-badge">{PRIORITY_BADGES[task.priority]}</span>
                                     <div className="task-item-content">
                                         <div className="task-item-title">{task.title}</div>
+                                        {task.assignedTo && <div className="task-item-assignee">Assigned to: {task.assignedTo}</div>}
                                         <div className="task-item-time">{formatTime(task.createdAt)}</div>
                                     </div>
                                 </div>
