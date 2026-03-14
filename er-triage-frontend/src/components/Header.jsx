@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Client } from '@stomp/stompjs';
 import { searchPatients } from '../api/patientApi.js';
 import { fetchAnalytics } from '../api/analyticsApi.js';
 import logoImg from '../assets/logo.png';
 import peopleIcon from '../assets/people.png';
 import logoutIcon from '../assets/log-out.png';
 import bellIcon from '../assets/bell.png';
+import { API_BASE } from '../api/config.js';
 
 export default function Header({ patients, user, onSignOut, onPatientSearchSelect }) {
     const redCount = patients.filter(p => p.priority === 'RED').length;
@@ -63,6 +65,48 @@ export default function Header({ patients, user, onSignOut, onPatientSearchSelec
         const interval = setInterval(loadNotifications, 15000);
         return () => clearInterval(interval);
     }, []);
+
+    // WebSocket Connection for Real-Time Tasks
+    useEffect(() => {
+        if (!user || (!user.username && !user.fullName)) return;
+        const currentUsername = user.username || user.fullName;
+
+        // Convert http/https to ws/wss
+        const wsProtocol = API_BASE.startsWith('https') ? 'wss:' : 'ws:';
+        const wsHost = API_BASE.replace(/^https?:\/\//, '');
+        const wsUrl = `${wsProtocol}//${wsHost.replace(/\/api$/, '')}/ws`;
+
+        const stompClient = new Client({
+            brokerURL: wsUrl,
+            reconnectDelay: 5000,
+            onConnect: () => {
+                console.log('Connected to WebSocket for Task Notifications');
+                stompClient.subscribe(`/topic/tasks/${currentUsername}`, (message) => {
+                    if (message.body) {
+                        const newTask = JSON.parse(message.body);
+                        const newEvent = {
+                            type: 'NEW_TASK_ASSIGNED',
+                            description: `New task assigned to you: ${newTask.title}`,
+                            timestamp: new Date().toISOString()
+                        };
+                        setNotifications(prev => [newEvent, ...prev]);
+                        setUnreadCount(prev => prev + 1);
+                    }
+                });
+            },
+            onStompError: (frame) => {
+                console.error('Broker reported error: ' + frame.headers['message']);
+            }
+        });
+
+        stompClient.activate();
+
+        return () => {
+            if (stompClient.active) {
+                stompClient.deactivate();
+            }
+        };
+    }, [user]);
 
     const handleOpenNotifications = () => {
         setShowNotifications(!showNotifications);
