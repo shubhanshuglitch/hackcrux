@@ -142,7 +142,7 @@ export default function Login({ onLogin }) {
           </button>
         </form>
 
-        <div className="login-footer">
+        <div className="login-auth-footer">
           <p>
             {isSignup ? 'Already have an account? ' : "Don't have an account? "}
             <button type="button" className="toggle-btn"
@@ -157,6 +157,7 @@ export default function Login({ onLogin }) {
           <small>Username: <strong>admin</strong> — Password: <strong>password123</strong></small>
         </div>
       </div>
+
     </div>
   );
 }

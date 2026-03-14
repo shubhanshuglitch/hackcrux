@@ -37,6 +37,13 @@ function loadCollapsedCards() {
     }
 }
 
+    function getCollapsedValue(state, patientId) {
+        if (Object.prototype.hasOwnProperty.call(state, patientId)) {
+            return !!state[patientId];
+        }
+        return true;
+    }
+
 function saveCollapsedCards(state) {
     try {
         localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(state));
@@ -69,7 +76,7 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
 
     const handleToggleCollapse = useCallback((patientId) => {
         setCollapsedCards(prev => {
-            const next = { ...prev, [patientId]: !prev[patientId] };
+            const next = { ...prev, [patientId]: !getCollapsedValue(prev, patientId) };
             return next;
         });
     }, []);
@@ -287,7 +294,7 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
                                             onRetriage={handleRetriage}
                                             onDragStart={handleDragStart}
                                             onDragEnd={handleDragEnd}
-                                            collapsed={!!collapsedCards[patient.id]}
+                                            collapsed={getCollapsedValue(collapsedCards, patient.id)}
                                             onToggleCollapse={handleToggleCollapse}
                                         />
                                     ))

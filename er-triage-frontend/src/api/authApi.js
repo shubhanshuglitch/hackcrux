@@ -1,7 +1,9 @@
-const API_BASE = 'http://localhost:8081/api/auth';
+import { API_BASE } from './config.js';
+
+const AUTH_API_BASE = `${API_BASE}/auth`;
 
 export async function login(username, password) {
-  const response = await fetch(`${API_BASE}/login`, {
+  const response = await fetch(`${AUTH_API_BASE}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -12,7 +14,7 @@ export async function login(username, password) {
 }
 
 export async function register(userData) {
-  const response = await fetch(`${API_BASE}/register`, {
+  const response = await fetch(`${AUTH_API_BASE}/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(userData),
@@ -23,7 +25,7 @@ export async function register(userData) {
 }
 
 export async function fetchCurrentUser(token) {
-  const response = await fetch(`${API_BASE}/me`, {
+  const response = await fetch(`${AUTH_API_BASE}/me`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Not authenticated');

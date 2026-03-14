@@ -100,9 +100,12 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
 
     return (
         <div
-            className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}`}
+            className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}${collapsed ? ' is-collapsed' : ''}`}
             id={`patient-${patient.id}`}
             draggable="true"
+            onClick={() => {
+                if (collapsed) onToggleCollapse(patient.id);
+            }}
             onDragStart={(e) => {
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', patient.id);
@@ -112,7 +115,21 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
         >
             <div className="card-header">
                 <div className="card-header-left">
-                    <div className="card-patient-name" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }} title="Click for details">{patient.name || 'Unknown Patient'}</div>
+                    <div
+                        className="card-patient-name"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (collapsed) {
+                                onToggleCollapse(patient.id);
+                                return;
+                            }
+                            setShowDetail(true);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                        title={collapsed ? 'Click to expand card' : 'Click for details'}
+                    >
+                        {patient.name || 'Unknown Patient'}
+                    </div>
                     <div className="card-meta-info">
                         {patient.age && <span className="card-age">Age: {patient.age}</span>}
                         <span className="card-id">ID: {patient.id}</span>
@@ -128,7 +145,10 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
                 <div className="card-header-actions">
                     <button
                         className="card-retriage"
-                        onClick={() => onToggleCollapse(patient.id)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleCollapse(patient.id);
+                        }}
                         title={collapsed ? 'Expand card' : 'Collapse card'}
                     >
                         <img
@@ -144,7 +164,14 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
                         />
                     </button>
                     {onRetriage && (
-                        <button className="card-retriage" onClick={() => onRetriage(patient)} title="Re-triage">
+                        <button
+                            className="card-retriage"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRetriage(patient);
+                            }}
+                            title="Re-triage"
+                        >
                             <img
                                 src={retriageIcon}
                                 alt="Re-triage"
@@ -155,7 +182,10 @@ function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, o
                     {/* Dismiss button — triggers modal in KanbanBoard, not inline */}
                     <button
                         className="card-dismiss"
-                        onClick={() => onArchive(patient)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onArchive(patient);
+                        }}
                         title="Dismiss"
                         id={`dismiss-${patient.id}`}
                     >✕</button>

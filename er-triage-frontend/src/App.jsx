@@ -132,83 +132,85 @@ export default function App() {
         });
     }, []);
 
-    if (!isAuthenticated) {
-        return <Login onLogin={handleLogin} />;
-    }
-
     return (
-        <div className="app-shell" ref={shellRef} onMouseMove={handlePointerMove}>
-            <div className="ambient-particles" aria-hidden="true">
-                <span className="particle p1"></span>
-                <span className="particle p2"></span>
-                <span className="particle p3"></span>
-                <span className="particle p4"></span>
-                <span className="particle p5"></span>
-            </div>
-            <Header 
-                patients={patients} 
-                user={user} 
-                onSignOut={handleSignOut} 
-                onPatientSearchSelect={handlePatientSearchSelect}
-            />
-            <main className={`main-layout ${activeTab === 'triage' ? 'triage-layout' : ''}`}>
-                <div className="tab-navigation">
-                    <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('triage')}>🩺 Patient Triage</button>
-                    
-                    <button className={`tab-btn ${activeTab === 'resource' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('resource')}>🏥 Resource Allocation</button>
-                    <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
-                    <button className={`tab-btn ${activeTab === 'staffMgmt' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('staffMgmt')}>🧾 Staff Management Directory</button>
-                    {assignedTasksAllowed && (
-                        <button className={`tab-btn ${activeTab === 'assignedTasks' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('assignedTasks')}>✅ My Assigned Tasks</button>
-                    )}
-                    <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('analytics')}>📊 Analytics</button>
-                        {recycleBinAllowed && (
-                        <button className={`tab-btn ${activeTab === 'recycle' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('recycle')}>
-                            <span>♻️ </span>
-                            <span className="tab-badge">{recycleBinCount}</span>
-                        </button>
-                    )}
-                </div>
-                {activeTab === 'triage' ? (
-                    <>
-                        <VoiceCapture onPatientAdded={handlePatientAdded} />
-                        <div className="content-wrapper">
-                            <div className="left-section">
-                                <KanbanBoard 
-                                    newPatient={newPatient} 
-                                    onPatientsChange={handlePatientsChange}
-                                    highlightPatientId={targetPatientId}
-                                    onHighlighted={handleTargetPatientScrolled}
-                                    currentUser={user}
-                                    onPatientArchived={handlePatientArchived}
-                                />
-                            </div>
-                            <div className="right-section">
-                                <TaskManager />
-                            </div>
+        <div className={`app-root ${isAuthenticated ? 'authenticated' : 'unauthenticated'}`}>
+            {isAuthenticated ? (
+                <div className="app-shell" ref={shellRef} onMouseMove={handlePointerMove}>
+                    <div className="ambient-particles" aria-hidden="true">
+                        <span className="particle p1"></span>
+                        <span className="particle p2"></span>
+                        <span className="particle p3"></span>
+                        <span className="particle p4"></span>
+                        <span className="particle p5"></span>
+                    </div>
+                    <Header
+                        patients={patients}
+                        user={user}
+                        onSignOut={handleSignOut}
+                        onPatientSearchSelect={handlePatientSearchSelect}
+                    />
+                    <main className={`main-layout ${activeTab === 'triage' ? 'triage-layout' : ''}`}>
+                        <div className="tab-navigation">
+                            <button className={`tab-btn ${activeTab === 'triage' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('triage')}>🩺 Patient Triage</button>
+
+                            <button className={`tab-btn ${activeTab === 'resource' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('resource')}>🏥 Resource Allocation</button>
+                            <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('users')}>👥 Staff Directory</button>
+                            <button className={`tab-btn ${activeTab === 'staffMgmt' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('staffMgmt')}>🧾 Staff Management Directory</button>
+                            {assignedTasksAllowed && (
+                                <button className={`tab-btn ${activeTab === 'assignedTasks' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('assignedTasks')}>✅ My Assigned Tasks</button>
+                            )}
+                            <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('analytics')}>📊 Analytics</button>
+                            {recycleBinAllowed && (
+                                <button className={`tab-btn ${activeTab === 'recycle' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('recycle')}>
+                                    <span>♻️ </span>
+                                    <span className="tab-badge">{recycleBinCount}</span>
+                                </button>
+                            )}
                         </div>
-                    </>
-                ) : activeTab === 'users' ? (
-                    <UserManagement currentUser={user} />
-                ) : activeTab === 'recycle' ? (
-                    <RecycleBin onPatientRestored={handlePatientRestored} onCountChange={handleRecycleBinCountChange} />
-                ) : activeTab === 'resource' ? (
-                    <ResourceAllocation />
-                ) : activeTab === 'staffMgmt' ? (
-                    <StaffManagementDirectory />
-                ) : activeTab === 'assignedTasks' ? (
-                    <AssignedTasksTab user={user} />
-                ) : activeTab === 'analytics' ? (
-                    <Analytics />
-                ) : null}
-            </main>
+                        {activeTab === 'triage' ? (
+                            <>
+                                <VoiceCapture onPatientAdded={handlePatientAdded} />
+                                <div className="content-wrapper">
+                                    <div className="left-section">
+                                        <KanbanBoard
+                                            newPatient={newPatient}
+                                            onPatientsChange={handlePatientsChange}
+                                            highlightPatientId={targetPatientId}
+                                            onHighlighted={handleTargetPatientScrolled}
+                                            currentUser={user}
+                                            onPatientArchived={handlePatientArchived}
+                                        />
+                                    </div>
+                                    <div className="right-section">
+                                        <TaskManager />
+                                    </div>
+                                </div>
+                            </>
+                        ) : activeTab === 'users' ? (
+                            <UserManagement currentUser={user} />
+                        ) : activeTab === 'recycle' ? (
+                            <RecycleBin onPatientRestored={handlePatientRestored} onCountChange={handleRecycleBinCountChange} />
+                        ) : activeTab === 'resource' ? (
+                            <ResourceAllocation />
+                        ) : activeTab === 'staffMgmt' ? (
+                            <StaffManagementDirectory />
+                        ) : activeTab === 'assignedTasks' ? (
+                            <AssignedTasksTab user={user} />
+                        ) : activeTab === 'analytics' ? (
+                            <Analytics />
+                        ) : null}
+                    </main>
+                </div>
+            ) : (
+                <Login onLogin={handleLogin} />
+            )}
         </div>
     );
 }
