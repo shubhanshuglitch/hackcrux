@@ -101,7 +101,6 @@ export default function Login({ onLogin }) {
                   <option value="SUPERVISOR">Supervisor</option>
                   <option value="NURSE">Nurse</option>
                   <option value="RECEPTIONIST">Receptionist</option>
-                  <option value="ADMIN">Administrator</option>
                 </select>
               </div>
               <div className="form-group">
@@ -113,6 +112,7 @@ export default function Login({ onLogin }) {
                   <option value="Cardiology">Cardiology</option>
                   <option value="Neurology">Neurology</option>
                   <option value="Pediatrics">Pediatrics</option>
+                  <option value="Gynecology">Gynecology</option>
                 </select>
               </div>
               {formData.role === 'DOCTOR' && (
@@ -130,6 +130,7 @@ export default function Login({ onLogin }) {
                     <option value="Allergist">Allergist</option>
                     <option value="Emergency Medicine">Emergency Medicine</option>
                     <option value="General Physician">General Physician</option>
+                    <option value="Gynecologist">Gynecologist</option>
                   </select>
                 </div>
               )}

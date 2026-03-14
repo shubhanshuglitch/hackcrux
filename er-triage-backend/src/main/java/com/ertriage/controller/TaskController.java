@@ -29,10 +29,14 @@ public class TaskController {
     public ResponseEntity<Task> createTask(@RequestBody Map<String, String> body) {
         String title = body.get("title");
         String priority = body.getOrDefault("priority", "normal");
+        String assignedTo = body.get("assignedTo");
         if (title == null || title.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        Task task = new Task(title.trim(), Task.Priority.valueOf(priority));
+        Task task = new Task(
+                title.trim(),
+                Task.Priority.valueOf(priority),
+                assignedTo == null || assignedTo.trim().isEmpty() ? null : assignedTo.trim());
         return ResponseEntity.status(HttpStatus.CREATED).body(taskRepository.save(task));
     }
 
