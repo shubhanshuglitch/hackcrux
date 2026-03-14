@@ -822,7 +822,9 @@ body {
 }
 
 .app-shell {
-  min-height: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   position: relative;
   isolation: isolate;
@@ -836,6 +838,10 @@ body {
 .app-shell>.main-layout {
   position: relative;
   z-index: 2;
+}
+
+.main-layout {
+  flex: 1;
 }
 
 .ambient-particles {
