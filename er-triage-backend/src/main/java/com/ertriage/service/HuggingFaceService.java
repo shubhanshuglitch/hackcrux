@@ -37,8 +37,30 @@ public class HuggingFaceService implements AiExtractionService {
     @Override
     public Map<String, Object> extractPatientData(String rawInput) {
         if (apiKey == null || apiKey.isBlank()) {
-            logger.warn("HuggingFace API key is missing, falling back to local extractor");
-            return localExtractorService.extract(rawInput);
+          logger.warn("HuggingFace API key is missing, falling back to local extractor");
+          return localExtractorService.extract(rawInput);
+        }
+
+        // Gynac-related terms to ignore for male patients
+        final List<String> gynacTerms = List.of("pregnant", "trimester", "pregnancy", "gestation", "obstetric", "gynec", "gynac", "uterus", "menstruation", "periods", "female-specific");
+
+        // After extracting patient data, filter gynac terms if gender is male
+        Map<String, Object> patientData = new HashMap<>();
+        // ...existing extraction logic...
+        // Example: after extraction, filter symptoms
+        if (patientData.containsKey("gender") && "Male".equalsIgnoreCase(String.valueOf(patientData.get("gender")))) {
+          if (patientData.containsKey("symptoms")) {
+            String symptoms = String.valueOf(patientData.get("symptoms"));
+            for (String term : gynacTerms) {
+              symptoms = symptoms.replaceAll("(?i)\\b" + term + "\\b", "");
+            }
+            // Clean up commas and whitespace
+            symptoms = symptoms.replaceAll(",\s*,", ",").replaceAll("^,|,$", "").replaceAll("\s{2,}", " ").trim();
+            patientData.put("symptoms", symptoms);
+          }
+          // Optionally, also clear pregnant/trimester fields
+          patientData.put("pregnant", null);
+          patientData.put("trimester", null);
         }
 
         try {
@@ -1225,11 +1247,11 @@ COMBINED EXAMPLE INPUTS
 
             logger.info("<<< Cleaned JSON to parse:\n{}", generatedText);
 
-            JsonNode patientData = objectMapper.readTree(generatedText);
+            JsonNode patientData1 = objectMapper.readTree(generatedText);
 
             Map<String, Object> result = new HashMap<>();
-            result.put("name", patientData.path("name").asText("Unknown"));
-            JsonNode ageNode = patientData.path("age");
+            result.put("name", patientData1.path("name").asText("Unknown"));
+            JsonNode ageNode = patientData1.path("age");
             result.put(
                 "age",
                 (ageNode.isMissingNode() || ageNode.isNull())
@@ -1238,13 +1260,13 @@ COMBINED EXAMPLE INPUTS
             );
             result.put(
                 "symptoms",
-                patientData.path("symptoms").asText("Not specified")
+                patientData1.path("symptoms").asText("Not specified")
             );
-            result.put("vitals", patientData.path("vitals").asText("Not recorded"));
-            result.put("priority", patientData.path("priority").asText("GREEN"));
+            result.put("vitals", patientData1.path("vitals").asText("Not recorded"));
+            result.put("priority", patientData1.path("priority").asText("GREEN"));
             result.put(
                 "recommended_specialization",
-                patientData
+                patientData1
                     .path("recommended_specialization")
                     .asText("Emergency Medicine")
             );
