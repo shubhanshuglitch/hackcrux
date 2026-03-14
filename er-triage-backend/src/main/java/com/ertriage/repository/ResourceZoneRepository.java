@@ -1,4 +1,4 @@
-package com.ertriage.repository;
+package main.java.com.ertriage.repository;
 
 import com.ertriage.model.ResourceZone;
 import org.springframework.data.mongodb.repository.MongoRepository;

@@ -1,4 +1,4 @@
-package com.ertriage.dto;
+package main.java.com.ertriage.dto;
 
 public class ResourceRoomDTO {
     private String id;

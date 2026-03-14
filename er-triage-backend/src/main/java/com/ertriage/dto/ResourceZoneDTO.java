@@ -1,4 +1,4 @@
-package com.ertriage.dto;
+package main.java.com.ertriage.dto;
 
 import java.util.ArrayList;
 import java.util.List;
