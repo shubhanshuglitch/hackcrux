@@ -16,8 +16,127 @@ export default function VoiceCapture({ onPatientAdded }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [language, setLanguage] = useState('hi-IN');
     const [isSupported] = useState(() => !!SpeechRecognition);
+    const [extractedKeywords, setExtractedKeywords] = useState({ symptoms: [], vitals: [] });
     const recognitionRef = useRef(null);
     const finalTranscriptRef = useRef('');
+
+    const symptomKeywords = ['chest pain', 'fever', 'headache', 'nausea', 'cough', 'shortness of breath', 'dyspnea', 'dizziness', 'vertigo', 'vomiting', 'abdomen pain', 'back pain', 'joint pain', 'muscle pain', 'fatigue', 'weakness', 'chills', 'rash', 'itching', 'burning', 'tingling', 'numbness', 'tremor', 'seizure', 'confusion', 'unconscious', 'difficulty breathing', 'wheezing', 'palpitations', 'arrhythmia', 'bleeding', 'bruise', 'swelling', 'fracture', 'injury', 'wound', 'laceration'];
+    const vitalKeywords = ['blood pressure', 'bp', 'heart rate', 'hr', 'pulse', 'respiratory rate', 'rr', 'temperature', 'temp', 'oxygen', 'o2', 'sat', 'saturation', 'glucose', 'blood sugar', 'spo2', 'systolic', 'diastolic', 'bpm', 'mmhg', 'celsius', 'fahrenheit'];
+
+   // Helper function to find the LAST occurrence of a keyword in text
+    const findLastOccurrence = (text, keyword) => {
+        const lowerText = text.toLowerCase();
+        let lastIndex = -1;
+        let searchFrom = 0;
+        
+        while (true) {
+            const idx = lowerText.indexOf(keyword, searchFrom);
+            if (idx === -1) break;
+            lastIndex = idx;
+            searchFrom = idx + 1;
+        }
+        
+        return lastIndex;
+    };
+
+    // Determine the vital category (e.g., "BP", "HR", "Temperature") from keywords
+    const getVitalCategory = (keyword) => {
+        const normalized = keyword.toLowerCase();
+        if (['bp', 'blood pressure'].includes(normalized)) return 'BP';
+        if (['hr', 'heart rate', 'pulse'].includes(normalized)) return 'HR';
+        if (['temperature', 'temp'].includes(normalized)) return 'Temperature';
+        if (['spo2', 'oxygen', 'o2', 'sat', 'saturation'].includes(normalized)) return 'SpO2';
+        if (['rr', 'respiratory rate'].includes(normalized)) return 'RR';
+        if (['glucose', 'blood sugar'].includes(normalized)) return 'Glucose';
+        return null;
+    };
+
+   const extractKeywords = (text) => {
+    if (!text.trim()) {
+        setExtractedKeywords({ symptoms: [], vitals: [] });
+        return;
+    }
+    const lowerText = text.toLowerCase();
+    const foundSymptoms = new Set();
+    const foundVitals = new Map(); // Maps vital category to its latest value
+
+    // Step 1 — collect all symptom keyword positions
+    const symptomRanges = [];
+    symptomKeywords.forEach(keyword => {
+        let searchFrom = 0;
+        while (true) {
+            const idx = lowerText.indexOf(keyword, searchFrom);
+            if (idx === -1) break;
+            foundSymptoms.add(keyword);
+            symptomRanges.push({ start: idx, end: idx + keyword.length });
+            searchFrom = idx + 1;
+        }
+    });
+
+    // Step 2 — extract ONLY the LATEST vital for each vital category
+    vitalKeywords.forEach(keyword => {
+        // Find the LAST occurrence of this vital keyword (most recent value)
+        const keywordIndex = findLastOccurrence(text, keyword);
+        if (keywordIndex === -1) return;
+
+        // skip if this keyword position overlaps a symptom range
+        const overlapsSymptom = symptomRanges.some(
+            r => keywordIndex >= r.start && keywordIndex < r.end
+        );
+        if (overlapsSymptom) return;
+
+        const afterKeyword = text.substring(keywordIndex + keyword.length).trim();
+
+        // strip leading separators like : = space
+        const cleaned = afterKeyword.replace(/^[:\s=]+/, '');
+
+        // match only numeric vital value — digits, slash, dash, dot, percent, degree, letters for units
+        // but STOP immediately at any whitespace followed by a non-numeric/non-unit character
+        const valueMatch = cleaned.match(/^([\d]+(?:[./\-][\d]+)?(?:\s*(?:mmhg|bpm|%|°c|°f|celsius|fahrenheit|mg\/dl|kg|lbs|cm)?)?)/i);
+
+        if (!valueMatch || !valueMatch[1].trim()) {
+            // no numeric value found — skip this vital entirely
+            return;
+        }
+
+        let value = valueMatch[1].trim();
+
+        // Final guard — remove any trailing symptom words that crept in
+        const symptomPattern = symptomKeywords
+            .map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+            .join('|');
+        value = value.replace(new RegExp(`\\s+(${symptomPattern}).*$`, 'i'), '').trim();
+
+        // Only store if value is non-empty and contains at least one digit
+        if (value && /\d/.test(value)) {
+            // Determine the vital category to avoid duplicates (e.g., "bp" and "blood pressure" are same)
+            const category = getVitalCategory(keyword);
+            if (category) {
+                // Replace any previous value for this category with the latest one
+                foundVitals.set(category, `${category}: ${value}`);
+            } else {
+                // If not a recognized category, use the keyword as the key
+                foundVitals.set(keyword, `${keyword}: ${value}`);
+            }
+        }
+    });
+
+    // Step 3 — remove any vital entries whose display value contains a symptom word
+    const cleanedVitals = new Map();
+    foundVitals.forEach((displayValue, key) => {
+        const hasSymptom = symptomKeywords.some(s =>
+            displayValue.toLowerCase().includes(s)
+        );
+        if (!hasSymptom) {
+            cleanedVitals.set(key, displayValue);
+        }
+    });
+
+    setExtractedKeywords({
+        symptoms: Array.from(foundSymptoms),
+        vitals: Array.from(cleanedVitals.values())
+    });
+};
 
     const playRecordingStartTone = async () => {
         try {
@@ -150,13 +269,14 @@ export default function VoiceCapture({ onPatientAdded }) {
             const priorityLabel = { RED: 'Critical', YELLOW: 'Urgent', GREEN: 'Standard' }[patient.priority] || patient.priority;
             setStatus({ type: 'success', message: `Patient added successfully. Priority: ${priorityLabel}` });
             setTranscript(''); setInterimTranscript(''); finalTranscriptRef.current = '';
+            setExtractedKeywords({ symptoms: [], vitals: [] });
             if (onPatientAdded) onPatientAdded(patient);
         } catch (err) {
             setStatus({ type: 'error', message: `Failed to process: ${err.message}. Is the backend running at localhost:8081?` });
         } finally { setIsSubmitting(false); }
     };
 
-    const handleClear = () => { setTranscript(''); setInterimTranscript(''); finalTranscriptRef.current = ''; setStatus(null); };
+    const handleClear = () => { setTranscript(''); setInterimTranscript(''); finalTranscriptRef.current = ''; setStatus(null); setExtractedKeywords({ symptoms: [], vitals: [] }); };
 
     const MicIcon = ({ size = 22 }) => (
         <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
@@ -301,7 +421,7 @@ export default function VoiceCapture({ onPatientAdded }) {
 
                                         <textarea id="transcript-input" className={`transcript-box-premium${isRecording ? ' listening' : ''}`}
                                             lang={language}
-                                            value={transcript} onChange={e => setTranscript(e.target.value)}
+                                            value={transcript} onChange={e => { setTranscript(e.target.value); extractKeywords(e.target.value); }}
                                             placeholder='Record or type patient details...' rows={7}
                                         />
 
@@ -309,6 +429,34 @@ export default function VoiceCapture({ onPatientAdded }) {
                                             <div className="interim-note-premium">
                                                 <span className="interim-icon">✨</span>
                                                 <span>{interimTranscript}</span>
+                                            </div>
+                                        )}
+
+                                        {(extractedKeywords.symptoms.length > 0 || extractedKeywords.vitals.length > 0) && (
+                                            <div className="verification-panel-premium">
+                                                <div className="verification-header">
+                                                    <span className="verification-title">📋 Detected Keywords</span>
+                                                </div>
+                                                {extractedKeywords.symptoms.length > 0 && (
+                                                    <div className="keyword-section">
+                                                        <span className="keyword-category">Symptoms:</span>
+                                                        <div className="keyword-tags">
+                                                            {extractedKeywords.symptoms.map((symptom, idx) => (
+                                                                <span key={idx} className="keyword-tag symptom-tag">{symptom}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {extractedKeywords.vitals.length > 0 && (
+                                                    <div className="keyword-section">
+                                                        <span className="keyword-category">Vitals:</span>
+                                                        <div className="keyword-tags">
+                                                            {extractedKeywords.vitals.map((vital, idx) => (
+                                                                <span key={idx} className="keyword-tag vital-tag">{vital}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
