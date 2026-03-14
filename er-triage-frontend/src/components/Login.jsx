@@ -206,10 +206,6 @@ export default function Login({ onLogin }) {
           </p>
         </div>
 
-        <div className="demo-users">
-          <p className="demo-label">Demo Credentials:</p>
-          <small>Username: <strong>admin</strong> — Password: <strong>password123</strong></small>
-        </div>
       </div>
 
     </div>
