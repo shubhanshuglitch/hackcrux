@@ -164,7 +164,7 @@ export default function UserManagement({ currentUser }) {
         <div className="user-management">
             <div className="user-mgmt-header">
                 <div>
-                    <div className="user-mgmt-title">👥 Staff Directory</div>
+                    <div className="user-mgmt-title">Staff Directory</div>
                     <div className="user-mgmt-subtitle">Manage hospital staff, doctors, nurses, and support personnel</div>
                 </div>
                 <div className="user-mgmt-stats">
