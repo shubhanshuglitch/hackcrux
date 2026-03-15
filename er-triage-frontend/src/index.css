@@ -1583,7 +1583,7 @@ width: 48px;
   display: flex;
   flex-direction: column;
   padding: 10px 48px;
-  gap: 60px;
+  gap: 20px;
   background: linear-gradient(135deg, #e8f1f5 0%, #e0ecf3 50%, #d8ebf2 100%);
   position: relative;
   overflow-y: auto;
@@ -4224,10 +4224,10 @@ width: 48px;
 }
 
 .tab-btn.active {
-  background: #2f6f7a;
+    background: linear-gradient(180deg, #1a5c6b 0%, #2f6f7a 50%, #5a9ca8 100%);
   color: #ffffff;
   border: none;
-  box-shadow: 0 2px 8px rgba(47, 111, 122, 0.25);
+  box-shadow: 0 4px 14px rgba(47, 111, 122, 0.35);
   transform: none;
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -6935,7 +6935,7 @@ width: 48px;
   z-index: 5;
   justify-content: center;
   gap: 4px;
-  padding: 6px;
+  padding: 2px;
   margin: 0 auto 8px;
   border: 1px solid rgba(255, 255, 255, 0.45);
   border-bottom: 1px solid rgba(255, 255, 255, 0.45);
@@ -6948,7 +6948,7 @@ width: 48px;
 }
 
 .main-layout .tab-btn {
-  padding: 10px 18px;
+  padding: 6px 14px;
   border-radius: 50px;
   border: none;
   background: transparent;
@@ -6973,9 +6973,9 @@ width: 48px;
 .main-layout .tab-btn.active {
   transform: none;
   border: none;
-  background: #2f6f7a;
+  background: linear-gradient(180deg, #1a5c6b 0%, #2f6f7a 50%, #5a9ca8 100%);
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(47, 111, 122, 0.25);
+  box-shadow: 0 4px 14px rgba(47, 111, 122, 0.35);
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
