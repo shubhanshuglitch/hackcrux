@@ -14,6 +14,8 @@ public class Task {
 
     private Priority priority;
 
+    private String assignedTo;
+
     private Boolean completed;
 
     private LocalDateTime createdAt;
@@ -24,9 +26,10 @@ public class Task {
 
     public Task() {}
 
-    public Task(String title, Priority priority) {
+    public Task(String title, Priority priority, String assignedTo) {
         this.title = title;
         this.priority = priority;
+        this.assignedTo = assignedTo;
         this.completed = false;
         this.createdAt = LocalDateTime.now();
     }
@@ -37,6 +40,8 @@ public class Task {
     public void setTitle(String title) { this.title = title; }
     public Priority getPriority() { return priority; }
     public void setPriority(Priority priority) { this.priority = priority; }
+    public String getAssignedTo() { return assignedTo; }
+    public void setAssignedTo(String assignedTo) { this.assignedTo = assignedTo; }
     public Boolean getCompleted() { return completed; }
     public void setCompleted(Boolean completed) { this.completed = completed; }
     public LocalDateTime getCreatedAt() { return createdAt; }

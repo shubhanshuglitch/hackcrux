@@ -13,18 +13,26 @@ public class PatientDTO {
     private String vitals;
     private String priority;
     private String rawInput;
+    private String assignedCareZone;
+    private String assignedRoom;
     private String assignedDoctorName;
     private String assignedDoctorSpecialization;
+    private String assignedNurseName;
+    private String assignedSupportStaff;
+    private List<String> assignedEquipment;
     private LocalDateTime timestamp;
     private List<PatientEventDTO> timeline;
 
     public PatientDTO() {
+        this.assignedEquipment = new ArrayList<>();
         this.timeline = new ArrayList<>();
     }
 
     public PatientDTO(String id, String name, Integer age, String symptoms, String vitals,
-        String priority, String rawInput, String assignedDoctorName, String assignedDoctorSpecialization,
-        LocalDateTime timestamp, List<PatientEventDTO> timeline) {
+        String priority, String rawInput, String assignedCareZone, String assignedRoom,
+        String assignedDoctorName, String assignedDoctorSpecialization, String assignedNurseName,
+        String assignedSupportStaff, List<String> assignedEquipment, LocalDateTime timestamp,
+        List<PatientEventDTO> timeline) {
         this.id = id;
         this.name = name;
         this.age = age;
@@ -32,8 +40,13 @@ public class PatientDTO {
         this.vitals = vitals;
         this.priority = priority;
         this.rawInput = rawInput;
+        this.assignedCareZone = assignedCareZone;
+        this.assignedRoom = assignedRoom;
         this.assignedDoctorName = assignedDoctorName;
         this.assignedDoctorSpecialization = assignedDoctorSpecialization;
+        this.assignedNurseName = assignedNurseName;
+        this.assignedSupportStaff = assignedSupportStaff;
+        this.assignedEquipment = assignedEquipment != null ? assignedEquipment : new ArrayList<>();
         this.timestamp = timestamp;
         this.timeline = timeline != null ? timeline : new ArrayList<>();
     }
@@ -43,7 +56,9 @@ public class PatientDTO {
                 patient.getId(), patient.getName(), patient.getAge(),
                 patient.getSymptoms(), patient.getVitals(),
                 patient.getPriority() != null ? patient.getPriority().name() : "GREEN",
-                patient.getRawInput(), patient.getAssignedDoctorName(), patient.getAssignedDoctorSpecialization(),
+                patient.getRawInput(), patient.getAssignedCareZone(), patient.getAssignedRoom(),
+                patient.getAssignedDoctorName(), patient.getAssignedDoctorSpecialization(),
+                patient.getAssignedNurseName(), patient.getAssignedSupportStaff(), patient.getAssignedEquipment(),
                 patient.getTimestamp(), new ArrayList<>());
     }
 
@@ -75,12 +90,32 @@ public class PatientDTO {
         return rawInput;
     }
 
+    public String getAssignedCareZone() {
+        return assignedCareZone;
+    }
+
+    public String getAssignedRoom() {
+        return assignedRoom;
+    }
+
     public String getAssignedDoctorName() {
         return assignedDoctorName;
     }
 
     public String getAssignedDoctorSpecialization() {
         return assignedDoctorSpecialization;
+    }
+
+    public String getAssignedNurseName() {
+        return assignedNurseName;
+    }
+
+    public String getAssignedSupportStaff() {
+        return assignedSupportStaff;
+    }
+
+    public List<String> getAssignedEquipment() {
+        return assignedEquipment;
     }
 
     public LocalDateTime getTimestamp() {
@@ -119,12 +154,32 @@ public class PatientDTO {
         this.rawInput = rawInput;
     }
 
+    public void setAssignedCareZone(String assignedCareZone) {
+        this.assignedCareZone = assignedCareZone;
+    }
+
+    public void setAssignedRoom(String assignedRoom) {
+        this.assignedRoom = assignedRoom;
+    }
+
     public void setAssignedDoctorName(String assignedDoctorName) {
         this.assignedDoctorName = assignedDoctorName;
     }
 
     public void setAssignedDoctorSpecialization(String assignedDoctorSpecialization) {
         this.assignedDoctorSpecialization = assignedDoctorSpecialization;
+    }
+
+    public void setAssignedNurseName(String assignedNurseName) {
+        this.assignedNurseName = assignedNurseName;
+    }
+
+    public void setAssignedSupportStaff(String assignedSupportStaff) {
+        this.assignedSupportStaff = assignedSupportStaff;
+    }
+
+    public void setAssignedEquipment(List<String> assignedEquipment) {
+        this.assignedEquipment = assignedEquipment;
     }
 
     public void setTimestamp(LocalDateTime timestamp) {

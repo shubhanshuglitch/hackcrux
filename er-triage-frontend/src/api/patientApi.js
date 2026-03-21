@@ -1,6 +1,5 @@
 import { getAuthHeaders } from './authApi.js';
-
-const API_BASE = 'http://localhost:8081/api';
+import { API_BASE } from './config.js';
 
 export async function submitPatient(rawInput) {
   const response = await fetch(`${API_BASE}/patients`, {
@@ -10,6 +9,17 @@ export async function submitPatient(rawInput) {
   });
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
   return response.json();
+}
+
+export async function refineSpeech(rawInput) {
+  const response = await fetch(`${API_BASE}/refine-speech`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ rawInput }),
+  });
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  const data = await response.json();
+  return data.refinedText;
 }
 
 export async function fetchPatients() {
@@ -26,12 +36,22 @@ export async function searchPatients(query) {
   return response.json();
 }
 
-export async function dismissPatient(id) {
+export async function dismissPatient(id, deleteReason, deletedBy) {
+  if (!deleteReason || !deleteReason.trim()) {
+    throw new Error('Delete reason is required.');
+  }
+
   const response = await fetch(`${API_BASE}/patients/${id}`, {
     method: 'DELETE',
-    headers: { ...getAuthHeaders() },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ deleteReason, deletedBy }),
   });
-  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  if (!response.ok) {
+    if (response.status === 400) {
+      throw new Error('Delete reason is required.');
+    }
+    throw new Error(`Server error: ${response.status}`);
+  }
 }
 
 export async function fetchRecycleBinPatients() {
@@ -92,3 +112,4 @@ export async function updatePatientPriority(id, priority) {
   return response.json();
 }
 // ────────────────────────────────────────────────────────────────────────────
+

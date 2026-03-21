@@ -1,8 +1,9 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 export default function PatientDetailModal({ patient, onClose }) {
     if (!patient) return null;
-    return (
+    return createPortal(
         <div className="detail-overlay" onClick={onClose}>
             <div className="detail-modal" onClick={e => e.stopPropagation()}>
 
@@ -29,6 +30,26 @@ export default function PatientDetailModal({ patient, onClose }) {
                     </div>
                     <div className="detail-section">
                         <strong>Intake Timestamp:</strong> {patient.timestamp ? new Date(patient.timestamp).toLocaleString() : 'Unknown'}
+                    </div>
+                    <div className="detail-section">
+                        <strong>Care Zone:</strong> {patient.assignedCareZone || 'Pending'}
+                    </div>
+                    <div className="detail-section">
+                        <strong>Assigned Room:</strong> {patient.assignedRoom || 'Pending'}
+                    </div>
+                    <div className="detail-section">
+                        <strong>Assigned Doctor:</strong> {patient.assignedDoctorName || 'Unassigned'}
+                    </div>
+                    <div className="detail-section">
+                        <strong>Assigned Nurse:</strong> {patient.assignedNurseName || 'Pending'}
+                    </div>
+                    <div className="detail-section">
+                        <strong>Support Team:</strong> {patient.assignedSupportStaff || 'General support'}
+                    </div>
+                    <div className="detail-section">
+                        <strong>Equipment:</strong> {Array.isArray(patient.assignedEquipment) && patient.assignedEquipment.length > 0
+                            ? patient.assignedEquipment.join(', ')
+                            : 'Standard triage kit'}
                     </div>
                 </div>
 

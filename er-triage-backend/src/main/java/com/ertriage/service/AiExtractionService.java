@@ -8,4 +8,5 @@ import java.util.Map;
  */
 public interface AiExtractionService {
     Map<String, Object> extractPatientData(String rawInput);
+    String refineSpeech(String rawInput);
 }

@@ -1,4 +1,4 @@
-import { dischargePatient, handoffPatient } from '../api/patientApi.js';
+import { dismissPatient, handoffPatient } from '../api/patientApi.js';
 import PatientTimeline from './PatientTimeline.jsx';
 import PatientDetailModal from './PatientDetailModal.jsx';
 
@@ -58,7 +58,7 @@ function getSlaStatus(patient, nowTs) {
     };
 }
 
-function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, collapsed, onToggleCollapse }) {
+function PatientCard({ patient, onArchive, onDismiss, onRetriage, onDragStart, onDragEnd, collapsed, onToggleCollapse }) {
 
     const [nowTs, setNowTs] = useState(Date.now());
 
@@ -71,20 +71,43 @@ function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, c
     const [actionNotes, setActionNotes] = useState('');
     const [actionDept, setActionDept] = useState('ICU');
     const [showDetail, setShowDetail] = useState(false);
+    const [discharging, setDischarging] = useState(false);
+    const [actionError, setActionError] = useState('');
 
     const handleDischarge = async () => {
+        if (!actionNotes.trim()) {
+            setActionError('Discharge notes are required');
+            return;
+        }
+        setDischarging(true);
+        setActionError('');
         try {
-            await dischargePatient(patient.id, actionNotes || 'Patient discharged', 'Staff');
-            if (onDismiss) onDismiss(patient.id);
-        } catch (err) { console.error('Failed to discharge:', err); }
+            const deleteReason = actionNotes.trim();
+            await dismissPatient(patient.id, deleteReason, 'Staff');
+            setActionType(null);
+            setActionNotes('');
+            if (onDismiss) onDismiss(patient.id); // Remove from board
+        } catch (err) { 
+            console.error('Failed to discharge:', err);
+            setActionError(`Error: ${err.message || 'Failed to discharge patient'}`);
+        } finally {
+            setDischarging(false);
+        }
     };
 
     const handleHandoff = async () => {
+        setDischarging(true);
+        setActionError('');
         try {
             await handoffPatient(patient.id, actionDept, actionNotes, 'Staff');
             setActionType(null);
             setActionNotes('');
-        } catch (err) { console.error('Failed to handoff:', err); }
+        } catch (err) { 
+            console.error('Failed to handoff:', err);
+            setActionError(`Error: ${err.message || 'Failed to handoff patient'}`);
+        } finally {
+            setDischarging(false);
+        }
     };
 
     const priorityInfo = {
@@ -99,9 +122,12 @@ function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, c
 
     return (
         <div
-            className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}`}
+            className={`patient-card priority-${patient.priority}${sla.breach ? ' sla-breached' : sla.warning ? ' sla-warning' : ''}${collapsed ? ' is-collapsed' : ''}`}
             id={`patient-${patient.id}`}
             draggable="true"
+            onClick={() => {
+                if (collapsed) onToggleCollapse(patient.id);
+            }}
             onDragStart={(e) => {
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', patient.id);
@@ -111,16 +137,40 @@ function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, c
         >
             <div className="card-header">
                 <div className="card-header-left">
-                    <div className="card-patient-name" onClick={() => setShowDetail(true)} style={{ cursor: 'pointer' }} title="Click for details">{patient.name || 'Unknown Patient'}</div>
+                    <div
+                        className="card-patient-name"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (collapsed) {
+                                onToggleCollapse(patient.id);
+                                return;
+                            }
+                            setShowDetail(true);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                        title={collapsed ? 'Click to expand card' : 'Click for details'}
+                    >
+                        {patient.name || 'Unknown Patient'}
+                    </div>
                     <div className="card-meta-info">
                         {patient.age && <span className="card-age">Age: {patient.age}</span>}
                         <span className="card-id">ID: {patient.id}</span>
                     </div>
+                    {(patient.assignedCareZone || patient.assignedRoom || patient.assignedNurseName) && (
+                        <div className="card-resource-strip">
+                            <span className="card-resource-chip">Zone: {patient.assignedCareZone || 'Pending'}</span>
+                            <span className="card-resource-chip">Room: {patient.assignedRoom || 'Pending'}</span>
+                            <span className="card-resource-chip">Nurse: {patient.assignedNurseName || 'Pending'}</span>
+                        </div>
+                    )}
                 </div>
                 <div className="card-header-actions">
                     <button
                         className="card-retriage"
-                        onClick={() => onToggleCollapse(patient.id)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleCollapse(patient.id);
+                        }}
                         title={collapsed ? 'Expand card' : 'Collapse card'}
                     >
                         <img
@@ -136,7 +186,14 @@ function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, c
                         />
                     </button>
                     {onRetriage && (
-                        <button className="card-retriage" onClick={() => onRetriage(patient)} title="Re-triage">
+                        <button
+                            className="card-retriage"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRetriage(patient);
+                            }}
+                            title="Re-triage"
+                        >
                             <img
                                 src={retriageIcon}
                                 alt="Re-triage"
@@ -147,7 +204,10 @@ function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, c
                     {/* Dismiss button — triggers modal in KanbanBoard, not inline */}
                     <button
                         className="card-dismiss"
-                        onClick={() => onDismiss(patient.id)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onArchive(patient);
+                        }}
                         title="Dismiss"
                         id={`dismiss-${patient.id}`}
                     >✕</button>
@@ -204,6 +264,25 @@ function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, c
                         </div>
                     )}
 
+                    {(patient.assignedRoom || patient.assignedDoctorName || patient.assignedNurseName) && (
+                        <div className="card-field">
+                            <div className="card-field-header">
+                                <span className="card-field-icon">🧩</span>
+                                <div className="card-field-label">Live Resource Allocation</div>
+                            </div>
+                            <div className="card-field-value">
+                                <div><strong>Zone:</strong> {patient.assignedCareZone || 'Pending'}</div>
+                                <div><strong>Room:</strong> {patient.assignedRoom || 'Pending'}</div>
+                                <div><strong>Doctor:</strong> {patient.assignedDoctorName || 'Unassigned'}</div>
+                                <div><strong>Nurse:</strong> {patient.assignedNurseName || 'Pending'}</div>
+                                <div><strong>Support:</strong> {patient.assignedSupportStaff || 'General support'}</div>
+                                {Array.isArray(patient.assignedEquipment) && patient.assignedEquipment.length > 0 && (
+                                    <div><strong>Equipment:</strong> {patient.assignedEquipment.join(', ')}</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="card-explain">
                         <div className="card-explain-title">AI Triage Rationale</div>
                         <ul className="card-explain-list">
@@ -232,17 +311,30 @@ function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, c
                             <div className="workflow-form">
                                 <div className="workflow-form-title">🏠 Discharge Patient</div>
                                 <input className="workflow-input" value={actionNotes}
-                                    onChange={e => setActionNotes(e.target.value)}
-                                    placeholder="Discharge notes (optional)" />
+                                    onChange={e => {
+                                        setActionNotes(e.target.value);
+                                        if (actionError) setActionError('');
+                                    }}
+                                    placeholder="Discharge notes (required)" 
+                                    disabled={discharging} />
+                                {actionError && <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '8px' }}>⚠️ {actionError}</div>}
                                 <div className="workflow-form-actions">
-                                    <button className="workflow-cancel" onClick={() => setActionType(null)}>Cancel</button>
-                                    <button className="workflow-confirm discharge" onClick={handleDischarge}>Confirm Discharge</button>
+                                    <button className="workflow-cancel" onClick={() => {
+                                        setActionType(null);
+                                        setActionError('');
+                                    }} disabled={discharging}>Cancel</button>
+                                    <button className="workflow-confirm discharge" onClick={handleDischarge} disabled={discharging || !actionNotes.trim()}>
+                                        {discharging ? 'Discharging...' : 'Confirm Discharge'}
+                                    </button>
                                 </div>
                             </div>
                         ) : (
                             <div className="workflow-form">
                                 <div className="workflow-form-title">🔀 Handoff Patient</div>
-                                <select className="workflow-input" value={actionDept} onChange={e => setActionDept(e.target.value)}>
+                                <select className="workflow-input" value={actionDept} onChange={e => {
+                                    setActionDept(e.target.value);
+                                    if (actionError) setActionError('');
+                                }} disabled={discharging}>
                                     <option value="ICU">ICU</option>
                                     <option value="Surgery">Surgery</option>
                                     <option value="Cardiology">Cardiology</option>
@@ -251,11 +343,21 @@ function PatientCard({ patient, onDismiss, onRetriage, onDragStart, onDragEnd, c
                                     <option value="Pediatrics">Pediatrics</option>
                                 </select>
                                 <input className="workflow-input" value={actionNotes}
-                                    onChange={e => setActionNotes(e.target.value)}
-                                    placeholder="Handoff notes (optional)" />
+                                    onChange={e => {
+                                        setActionNotes(e.target.value);
+                                        if (actionError) setActionError('');
+                                    }}
+                                    placeholder="Handoff notes (optional)" 
+                                    disabled={discharging} />
+                                {actionError && <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '8px' }}>⚠️ {actionError}</div>}
                                 <div className="workflow-form-actions">
-                                    <button className="workflow-cancel" onClick={() => setActionType(null)}>Cancel</button>
-                                    <button className="workflow-confirm handoff" onClick={handleHandoff}>Confirm Handoff</button>
+                                    <button className="workflow-cancel" onClick={() => {
+                                        setActionType(null);
+                                        setActionError('');
+                                    }} disabled={discharging}>Cancel</button>
+                                    <button className="workflow-confirm handoff" onClick={handleHandoff} disabled={discharging}>
+                                        {discharging ? 'Processing...' : 'Confirm Handoff'}
+                                    </button>
                                 </div>
                             </div>
                         )}

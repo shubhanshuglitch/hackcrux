@@ -8,17 +8,22 @@ public class RecycleBinPatientDTO {
     private PatientDTO patient;
     private List<PatientEventDTO> timeline;
     private LocalDateTime deletedAt;
+    private String deleteReason;
+    private String deletedBy;
     private LocalDateTime purgeAt;
 
     public RecycleBinPatientDTO() {
     }
 
     public RecycleBinPatientDTO(String id, PatientDTO patient, List<PatientEventDTO> timeline,
-                                LocalDateTime deletedAt, LocalDateTime purgeAt) {
+                                LocalDateTime deletedAt, String deleteReason, String deletedBy,
+                                LocalDateTime purgeAt) {
         this.id = id;
         this.patient = patient;
         this.timeline = timeline;
         this.deletedAt = deletedAt;
+        this.deleteReason = deleteReason;
+        this.deletedBy = deletedBy;
         this.purgeAt = purgeAt;
     }
 
@@ -36,6 +41,14 @@ public class RecycleBinPatientDTO {
 
     public LocalDateTime getDeletedAt() {
         return deletedAt;
+    }
+
+    public String getDeleteReason() {
+        return deleteReason;
+    }
+
+    public String getDeletedBy() {
+        return deletedBy;
     }
 
     public LocalDateTime getPurgeAt() {
@@ -56,6 +69,14 @@ public class RecycleBinPatientDTO {
 
     public void setDeletedAt(LocalDateTime deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public void setDeleteReason(String deleteReason) {
+        this.deleteReason = deleteReason;
+    }
+
+    public void setDeletedBy(String deletedBy) {
+        this.deletedBy = deletedBy;
     }
 
     public void setPurgeAt(LocalDateTime purgeAt) {

@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Client } from '@stomp/stompjs';
 import { searchPatients } from '../api/patientApi.js';
 import { fetchAnalytics } from '../api/analyticsApi.js';
+import logoImg from '../assets/logo.png';
+import peopleIcon from '../assets/people.png';
+import logoutIcon from '../assets/log-out.png';
+import bellIcon from '../assets/bell.png';
+import { API_BASE } from '../api/config.js';
 
 export default function Header({ patients, user, onSignOut, onPatientSearchSelect }) {
     const redCount = patients.filter(p => p.priority === 'RED').length;
@@ -60,6 +66,48 @@ export default function Header({ patients, user, onSignOut, onPatientSearchSelec
         return () => clearInterval(interval);
     }, []);
 
+    // WebSocket Connection for Real-Time Tasks
+    useEffect(() => {
+        if (!user || (!user.username && !user.fullName)) return;
+        const currentUsername = user.username || user.fullName;
+
+        // Convert http/https to ws/wss
+        const wsProtocol = API_BASE.startsWith('https') ? 'wss:' : 'ws:';
+        const wsHost = API_BASE.replace(/^https?:\/\//, '');
+        const wsUrl = `${wsProtocol}//${wsHost.replace(/\/api$/, '')}/ws`;
+
+        const stompClient = new Client({
+            brokerURL: wsUrl,
+            reconnectDelay: 5000,
+            onConnect: () => {
+                console.log('Connected to WebSocket for Task Notifications');
+                stompClient.subscribe(`/topic/tasks/${currentUsername}`, (message) => {
+                    if (message.body) {
+                        const newTask = JSON.parse(message.body);
+                        const newEvent = {
+                            type: 'NEW_TASK_ASSIGNED',
+                            description: `New task assigned to you: ${newTask.title}`,
+                            timestamp: new Date().toISOString()
+                        };
+                        setNotifications(prev => [newEvent, ...prev]);
+                        setUnreadCount(prev => prev + 1);
+                    }
+                });
+            },
+            onStompError: (frame) => {
+                console.error('Broker reported error: ' + frame.headers['message']);
+            }
+        });
+
+        stompClient.activate();
+
+        return () => {
+            if (stompClient.active) {
+                stompClient.deactivate();
+            }
+        };
+    }, [user]);
+
     const handleOpenNotifications = () => {
         setShowNotifications(!showNotifications);
         if (!showNotifications) {
@@ -116,11 +164,15 @@ export default function Header({ patients, user, onSignOut, onPatientSearchSelec
         <header className="header-new">
             <div className="header-left">
                 <div className="header-logo-badge">
-                    <span className="logo-icon"><HospitalMark /></span>
+                     <img 
+    src={logoImg} 
+    alt="ER Triage Logo" 
+    className="logo-icon"
+  />
                 </div>
                 <div className="header-title-wrap">
                     <h1 className="header-title-main">ER TRIAGE SPRINT</h1>
-                    <span className="header-tag-chip"><span className="header-live-dot"></span>Clinical Command Center</span>
+                   
                 </div>
             </div>
 
@@ -144,15 +196,31 @@ export default function Header({ patients, user, onSignOut, onPatientSearchSelec
 
             <div className="header-right">
                 <button className="header-btn find-btn" onClick={() => setShowSearch(!showSearch)}>
-                    <span className="btn-icon">🔍</span>
+                    <span className="btn-icon">
+  <img 
+    src={peopleIcon} 
+    alt="search" 
+    style={{ width: '16px', height: '16px', objectFit: 'contain' }} 
+  />
+</span>
                     Find Patient
                 </button>
                 <button className="header-btn notif-btn" onClick={handleOpenNotifications}>
-                    <span className="btn-icon">🔔</span>
+                    <span className="btn-icon"><img 
+    src={bellIcon} 
+    alt="search" 
+    style={{ width: '18px', height: '18px', objectFit: 'contain' }} 
+  /></span>
                     {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
                 </button>
                 <button className="header-btn signout-btn" onClick={onSignOut}>
-                    <span className="btn-icon">→</span>
+                    <span className="btn-icon">
+  <img 
+    src={logoutIcon} 
+    alt="logout" 
+    style={{ width: '16px', height: '16px', objectFit: 'contain' }} 
+  />
+</span>
                     Sign Out{user ? ` (${user.username || user.fullName || ''})` : ''}
                 </button>
             </div>

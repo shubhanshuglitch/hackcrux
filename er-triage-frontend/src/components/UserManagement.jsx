@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { fetchUsers, createUser, updateUser, deleteUser } from '../api/userApi.js';
 
-const ROLE_ICONS = { ADMIN: '👑', DOCTOR: '🩺', NURSE: '💉', RECEPTIONIST: '📋' };
-const ROLES = ['ALL', 'ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST'];
-const ROLE_DISPLAY = { ADMIN: 'Admin', DOCTOR: 'Doctor', NURSE: 'Nurse', RECEPTIONIST: 'Receptionist' };
+const ROLE_ICONS = { ADMIN: '👑', DOCTOR: '🩺', SUPERVISOR: '🧭', NURSE: '💉', RECEPTIONIST: '📋' };
+const ROLES = ['ALL', 'ADMIN', 'DOCTOR', 'SUPERVISOR', 'NURSE', 'RECEPTIONIST'];
+const ROLE_DISPLAY = { ADMIN: 'Admin', DOCTOR: 'Doctor', SUPERVISOR: 'Supervisor', NURSE: 'Nurse', RECEPTIONIST: 'Receptionist' };
 const DEPARTMENTS = [
     // General / Support
     'Emergency Medicine',
@@ -33,11 +33,26 @@ const DEPARTMENTS = [
     'ENT (Otolaryngology)',
     'Hematology',
     'Endocrinology',
+    'Gynecology',
+];
+
+const SPECIALIZATIONS = [
+    'Cardiologist',
+    'Pulmonologist',
+    'Neurologist',
+    'Orthopedic Surgeon',
+    'Gastroenterologist',
+    'General Surgeon',
+    'Endocrinologist',
+    'Allergist',
+    'Emergency Medicine',
+    'General Physician',
+    'Gynecologist',
 ];
 
 const emptyForm = { username: '', fullName: '', email: '', role: 'DOCTOR', department: 'Emergency Medicine', specialization: '', active: true };
 
-export default function UserManagement() {
+export default function UserManagement({ currentUser }) {
     const [users, setUsers] = useState([]);
     const [filter, setFilter] = useState('ALL');
     const [loading, setLoading] = useState(true);
@@ -48,6 +63,7 @@ export default function UserManagement() {
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
     const [deleteCandidate, setDeleteCandidate] = useState(null);
+    const canAddStaff = currentUser?.role === 'ADMIN';
 
     useEffect(() => { loadUsers(); }, []);
 
@@ -71,6 +87,7 @@ export default function UserManagement() {
     };
 
     const openAddForm = () => {
+        if (!canAddStaff) return;
         setEditingUser(null);
         setFormData({ ...emptyForm });
         setFormError('');
@@ -124,6 +141,9 @@ export default function UserManagement() {
                 const updated = await updateUser(editingUser.id, formData);
                 setUsers(prev => prev.map(u => u.id === editingUser.id ? updated : u));
             } else {
+                if (!canAddStaff) {
+                    throw new Error('Only admin users can add staff.');
+                }
                 const created = await createUser(formData);
                 setUsers(prev => [...prev, created]);
             }
@@ -144,7 +164,7 @@ export default function UserManagement() {
         <div className="user-management">
             <div className="user-mgmt-header">
                 <div>
-                    <div className="user-mgmt-title">👥 Staff Directory</div>
+                    <div className="user-mgmt-title">Staff Directory</div>
                     <div className="user-mgmt-subtitle">Manage hospital staff, doctors, nurses, and support personnel</div>
                 </div>
                 <div className="user-mgmt-stats">
@@ -172,9 +192,11 @@ export default function UserManagement() {
                         </button>
                     ))}
                 </div>
-                <button className="add-staff-btn" onClick={openAddForm}>
-                    <span>➕</span> Add Staff
-                </button>
+                {canAddStaff && (
+                    <button className="add-staff-btn" onClick={openAddForm}>
+                        <span>➕</span> Add Staff
+                    </button>
+                )}
             </div>
 
             {/* Add / Edit Form */}
@@ -209,6 +231,7 @@ export default function UserManagement() {
                                     <label>Role</label>
                                     <select name="role" value={formData.role} onChange={handleChange}>
                                         <option value="DOCTOR">🩺 Doctor</option>
+                                        <option value="SUPERVISOR">🧭 Supervisor</option>
                                         <option value="NURSE">💉 Nurse</option>
                                         <option value="ADMIN">👑 Admin</option>
                                         <option value="RECEPTIONIST">📋 Receptionist</option>

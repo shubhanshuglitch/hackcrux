@@ -3,6 +3,8 @@ package com.ertriage.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Document(collection = "patients")
 public class Patient {
@@ -21,8 +23,13 @@ public class Patient {
 
     private String rawInput;
 
+    private String assignedCareZone;
+    private String assignedRoom;
     private String assignedDoctorName;
     private String assignedDoctorSpecialization;
+    private String assignedNurseName;
+    private String assignedSupportStaff;
+    private List<String> assignedEquipment;
 
     private LocalDateTime timestamp;
 
@@ -31,11 +38,13 @@ public class Patient {
     }
 
     public Patient() {
+        this.assignedEquipment = new ArrayList<>();
     }
 
     public Patient(String id, String name, Integer age, String symptoms, String vitals,
-            Priority priority, String rawInput, String assignedDoctorName, String assignedDoctorSpecialization,
-            LocalDateTime timestamp) {
+            Priority priority, String rawInput, String assignedCareZone, String assignedRoom,
+            String assignedDoctorName, String assignedDoctorSpecialization, String assignedNurseName,
+            String assignedSupportStaff, List<String> assignedEquipment, LocalDateTime timestamp) {
         this.id = id;
         this.name = name;
         this.age = age;
@@ -43,8 +52,13 @@ public class Patient {
         this.vitals = vitals;
         this.priority = priority;
         this.rawInput = rawInput;
+        this.assignedCareZone = assignedCareZone;
+        this.assignedRoom = assignedRoom;
         this.assignedDoctorName = assignedDoctorName;
         this.assignedDoctorSpecialization = assignedDoctorSpecialization;
+        this.assignedNurseName = assignedNurseName;
+        this.assignedSupportStaff = assignedSupportStaff;
+        this.assignedEquipment = assignedEquipment != null ? assignedEquipment : new ArrayList<>();
         this.timestamp = timestamp;
     }
 
@@ -76,12 +90,32 @@ public class Patient {
         return rawInput;
     }
 
+    public String getAssignedCareZone() {
+        return assignedCareZone;
+    }
+
+    public String getAssignedRoom() {
+        return assignedRoom;
+    }
+
     public String getAssignedDoctorName() {
         return assignedDoctorName;
     }
 
     public String getAssignedDoctorSpecialization() {
         return assignedDoctorSpecialization;
+    }
+
+    public String getAssignedNurseName() {
+        return assignedNurseName;
+    }
+
+    public String getAssignedSupportStaff() {
+        return assignedSupportStaff;
+    }
+
+    public List<String> getAssignedEquipment() {
+        return assignedEquipment;
     }
 
     public LocalDateTime getTimestamp() {
@@ -116,12 +150,32 @@ public class Patient {
         this.rawInput = rawInput;
     }
 
+    public void setAssignedCareZone(String assignedCareZone) {
+        this.assignedCareZone = assignedCareZone;
+    }
+
+    public void setAssignedRoom(String assignedRoom) {
+        this.assignedRoom = assignedRoom;
+    }
+
     public void setAssignedDoctorName(String assignedDoctorName) {
         this.assignedDoctorName = assignedDoctorName;
     }
 
     public void setAssignedDoctorSpecialization(String assignedDoctorSpecialization) {
         this.assignedDoctorSpecialization = assignedDoctorSpecialization;
+    }
+
+    public void setAssignedNurseName(String assignedNurseName) {
+        this.assignedNurseName = assignedNurseName;
+    }
+
+    public void setAssignedSupportStaff(String assignedSupportStaff) {
+        this.assignedSupportStaff = assignedSupportStaff;
+    }
+
+    public void setAssignedEquipment(List<String> assignedEquipment) {
+        this.assignedEquipment = assignedEquipment;
     }
 
     public void setTimestamp(LocalDateTime timestamp) {
@@ -140,8 +194,13 @@ public class Patient {
         private String vitals;
         private Priority priority;
         private String rawInput;
+        private String assignedCareZone;
+        private String assignedRoom;
         private String assignedDoctorName;
         private String assignedDoctorSpecialization;
+        private String assignedNurseName;
+        private String assignedSupportStaff;
+        private List<String> assignedEquipment;
         private LocalDateTime timestamp;
 
         public PatientBuilder id(String id) {
@@ -179,6 +238,16 @@ public class Patient {
             return this;
         }
 
+        public PatientBuilder assignedCareZone(String assignedCareZone) {
+            this.assignedCareZone = assignedCareZone;
+            return this;
+        }
+
+        public PatientBuilder assignedRoom(String assignedRoom) {
+            this.assignedRoom = assignedRoom;
+            return this;
+        }
+
         public PatientBuilder assignedDoctorName(String assignedDoctorName) {
             this.assignedDoctorName = assignedDoctorName;
             return this;
@@ -189,13 +258,30 @@ public class Patient {
             return this;
         }
 
+        public PatientBuilder assignedNurseName(String assignedNurseName) {
+            this.assignedNurseName = assignedNurseName;
+            return this;
+        }
+
+        public PatientBuilder assignedSupportStaff(String assignedSupportStaff) {
+            this.assignedSupportStaff = assignedSupportStaff;
+            return this;
+        }
+
+        public PatientBuilder assignedEquipment(List<String> assignedEquipment) {
+            this.assignedEquipment = assignedEquipment;
+            return this;
+        }
+
         public PatientBuilder timestamp(LocalDateTime timestamp) {
             this.timestamp = timestamp;
             return this;
         }
 
         public Patient build() {
-            return new Patient(id, name, age, symptoms, vitals, priority, rawInput, assignedDoctorName, assignedDoctorSpecialization, timestamp);
+            return new Patient(id, name, age, symptoms, vitals, priority, rawInput, assignedCareZone, assignedRoom,
+                    assignedDoctorName, assignedDoctorSpecialization, assignedNurseName, assignedSupportStaff,
+                    assignedEquipment, timestamp);
         }
     }
 }

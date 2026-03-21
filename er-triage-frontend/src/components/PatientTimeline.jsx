@@ -14,6 +14,9 @@ export default function PatientTimeline({ events }) {
         INTAKE: '📥 Intake',
         REASSESSMENT: '🔄 Reassessment',
         PRIORITY_CHANGE: '⚡ Priority Changed',
+        RESOURCE_ALLOCATION: '🧩 Resource Allocation',
+        HANDOFF: '🔀 Handoff',
+        DISCHARGE: '🏠 Discharge',
     };
 
     return (

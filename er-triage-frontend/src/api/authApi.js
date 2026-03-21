@@ -1,7 +1,39 @@
-const API_BASE = 'http://localhost:8081/api/auth';
+import { API_BASE } from './config.js';
+
+const AUTH_API_BASE = `${API_BASE}/auth`;
+
+/**
+ * Fetch with timeout and automatic retry for cold-start resilience.
+ * Render free tier can take 30-60s to wake up, so we retry on network failures.
+ */
+async function resilientFetch(url, options = {}, { retries = 2, timeoutMs = 30000 } = {}) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const isLastAttempt = attempt === retries;
+
+      if (isLastAttempt) {
+        if (err.name === 'AbortError') {
+          throw new Error('Server is taking too long to respond. It may be starting up — please try again in 30 seconds.');
+        }
+        throw new Error('Unable to reach the server. Please check your connection or try again shortly.');
+      }
+
+      // Wait before retrying (increasing delay: 3s, 6s)
+      await new Promise(resolve => setTimeout(resolve, 3000 * (attempt + 1)));
+    }
+  }
+}
 
 export async function login(username, password) {
-  const response = await fetch(`${API_BASE}/login`, {
+  const response = await resilientFetch(`${AUTH_API_BASE}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -12,7 +44,7 @@ export async function login(username, password) {
 }
 
 export async function register(userData) {
-  const response = await fetch(`${API_BASE}/register`, {
+  const response = await resilientFetch(`${AUTH_API_BASE}/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(userData),
@@ -23,7 +55,7 @@ export async function register(userData) {
 }
 
 export async function fetchCurrentUser(token) {
-  const response = await fetch(`${API_BASE}/me`, {
+  const response = await resilientFetch(`${AUTH_API_BASE}/me`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Not authenticated');

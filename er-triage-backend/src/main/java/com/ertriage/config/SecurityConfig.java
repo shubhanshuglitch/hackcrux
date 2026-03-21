@@ -33,8 +33,11 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/analytics/**").permitAll()
                 .requestMatchers("/api/users/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/api/patients/recycle-bin/**").hasAnyRole("ADMIN", "DOCTOR", "SUPERVISOR")
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
             )

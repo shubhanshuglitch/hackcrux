@@ -1,6 +1,5 @@
 import { getAuthHeaders } from './authApi.js';
-
-const API_BASE = 'http://localhost:8081/api';
+import { API_BASE } from './config.js';
 
 function computeFallbackAnalytics(patients) {
   const list = Array.isArray(patients) ? patients : [];

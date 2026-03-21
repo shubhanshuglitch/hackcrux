@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { fetchPatients, retriagePatient, updatePatientPriority, dismissPatient } from '../api/patientApi.js';
 import PatientCard from './PatientCard.jsx';
 import ReTriageModal from './ReTriageModal.jsx';
+import Toast from './Toast.jsx';
 
 const POLL_INTERVAL_MS = 4000;
 // ── NEW: localStorage key for persisting collapse state ──────────────────────
@@ -36,6 +38,13 @@ function loadCollapsedCards() {
     }
 }
 
+    function getCollapsedValue(state, patientId) {
+        if (Object.prototype.hasOwnProperty.call(state, patientId)) {
+            return !!state[patientId];
+        }
+        return true;
+    }
+
 function saveCollapsedCards(state) {
     try {
         localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(state));
@@ -45,12 +54,24 @@ function saveCollapsedCards(state) {
 }
 // ────────────────────────────────────────────────────────────────────────────
 
-export default function KanbanBoard({ newPatient, onPatientsChange, highlightPatientId, onHighlighted }) {
+export default function KanbanBoard({ newPatient, onPatientsChange, highlightPatientId, onHighlighted, currentUser, onPatientArchived }) {
     const [patients, setPatients] = useState([]);
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [nowTs, setNowTs] = useState(Date.now());
     const [retriageModal, setReTriageModal] = useState(null);
     const [dragOverCol, setDragOverCol] = useState(null);
+    const [deleteCandidate, setDeleteCandidate] = useState(null);
+    const [deleteReason, setDeleteReason] = useState('');
+    const [deleteError, setDeleteError] = useState('');
+    const [deleting, setDeleting] = useState(false);
+    
+    // ── NEW: toast notification state ────────────────────────────────────────
+    const [toast, setToast] = useState(null);
+    // ────────────────────────────────────────────────────────────────────────
+    
+    // ── NEW: track recently discharged patients to prevent them from reappearing ───
+    const recentlyDischargedRef = useRef(new Set());
+    // ────────────────────────────────────────────────────────────────────────
 
     // ── NEW: initialise from localStorage so state survives navigation ───────
     const [collapsedCards, setCollapsedCards] = useState(loadCollapsedCards);
@@ -64,7 +85,7 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
 
     const handleToggleCollapse = useCallback((patientId) => {
         setCollapsedCards(prev => {
-            const next = { ...prev, [patientId]: !prev[patientId] };
+            const next = { ...prev, [patientId]: !getCollapsedValue(prev, patientId) };
             return next;
         });
     }, []);
@@ -75,11 +96,13 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
     const loadPatients = useCallback(async () => {
         try {
             const data = await fetchPatients();
-            const merged = data.map(p =>
-                pendingPriorityRef.current[p.id] !== undefined
-                    ? { ...p, priority: pendingPriorityRef.current[p.id] }
-                    : p
-            );
+            const merged = data
+                .filter(p => !recentlyDischargedRef.current.has(p.id)) // ── FIX: exclude recently discharged ──
+                .map(p =>
+                    pendingPriorityRef.current[p.id] !== undefined
+                        ? { ...p, priority: pendingPriorityRef.current[p.id] }
+                        : p
+                );
             setPatients(merged);
             setLastUpdated(new Date());
             if (onPatientsChange) onPatientsChange(merged);
@@ -118,26 +141,75 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
         }
     }, [highlightPatientId, patients, onHighlighted]);
 
-    const handleDismiss = async (id) => {
+    const removePatientFromBoard = useCallback((id) => {
+        setPatients(prev => prev.filter(p => p.id !== id));
+        setCollapsedCards(prev => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+        });
+    }, []);
+
+    // ── NEW: handle patient discharge ────────────────────────────────────────
+    const handleDischarge = useCallback((patientId) => {
+        removePatientFromBoard(patientId);
+        
+        // ── FIX: Add to recently discharged to prevent polling from re-adding ──
+        recentlyDischargedRef.current.add(patientId);
+        // Remove from recently discharged after 5 seconds (after toast disappears)
+        setTimeout(() => {
+            recentlyDischargedRef.current.delete(patientId);
+        }, 5000);
+        // ────────────────────────────────────────────────────────────────────────
+        
+        setToast({
+            message: '✅ Patient successfully discharged!',
+            type: 'success',
+            duration: 3000,
+        });
+    }, [removePatientFromBoard]);
+    // ────────────────────────────────────────────────────────────────────────
+
+    const handleArchiveRequest = useCallback((patient) => {
+        setDeleteCandidate(patient);
+        setDeleteReason('');
+        setDeleteError('');
+    }, []);
+
+    const handleDismiss = async () => {
+        if (!deleteCandidate?.id) return;
+        if (!deleteReason.trim()) {
+            setDeleteError('Delete reason is required.');
+            return;
+        }
+
         try {
-            await dismissPatient(id);
-            setPatients(prev => prev.filter(p => p.id !== id));
-            // Clean up persisted collapse entry for dismissed patient
-            setCollapsedCards(prev => {
-                const next = { ...prev };
-                delete next[id];
-                return next;
-            });
+            setDeleting(true);
+            await dismissPatient(
+                deleteCandidate.id,
+                deleteReason.trim(),
+                currentUser?.fullName || currentUser?.username || 'Staff'
+            );
+            removePatientFromBoard(deleteCandidate.id);
+            setDeleteCandidate(null);
+            setDeleteReason('');
+            setDeleteError('');
+            if (onPatientArchived) onPatientArchived();
         } catch (err) {
             console.error('Failed to dismiss patient:', err);
+            setDeleteError(err.message || 'Failed to archive patient');
+        } finally {
+            setDeleting(false);
         }
     };
 
     const handleRetriage = (patient) => setReTriageModal(patient);
+
     const handleReTriageSubmit = async (id, symptoms, vitals) => {
-        await retriagePatient(id, symptoms, vitals);
-        await loadPatients();
-    };
+    const updated = await retriagePatient(id, symptoms, vitals);
+    await loadPatients();
+    return updated;
+};
 
     const handleDragStart = useCallback((patientId) => {
         dragPatientId.current = patientId;
@@ -248,11 +320,12 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
                                             key={patient.id}
                                             patient={patient}
                                             nowTs={nowTs}
-                                            onDismiss={handleDismiss}
+                                            onArchive={handleArchiveRequest}
+                                            onDismiss={removePatientFromBoard}
                                             onRetriage={handleRetriage}
                                             onDragStart={handleDragStart}
                                             onDragEnd={handleDragEnd}
-                                            collapsed={!!collapsedCards[patient.id]}
+                                            collapsed={getCollapsedValue(collapsedCards, patient.id)}
                                             onToggleCollapse={handleToggleCollapse}
                                         />
                                     ))
@@ -266,8 +339,61 @@ export default function KanbanBoard({ newPatient, onPatientsChange, highlightPat
             {retriageModal && (
                 <ReTriageModal patient={retriageModal}
                     onClose={() => setReTriageModal(null)}
-                    onRetriage={handleReTriageSubmit} />
+                    onRetriage={handleReTriageSubmit}
+                    currentUser={currentUser}
+                    onDischarge={handleDischarge} />
             )}
+
+            {deleteCandidate && createPortal(
+                <div className="staff-form-overlay" onClick={() => !deleting && setDeleteCandidate(null)}>
+                    <div className="delete-confirm-modal patient-delete-modal" onClick={e => e.stopPropagation()}>
+                        <div className="staff-form-header delete-header">
+                            <h3>Archive Patient Record</h3>
+                            <button className="staff-form-close" onClick={() => !deleting && setDeleteCandidate(null)}>✕</button>
+                        </div>
+                        <div className="delete-confirm-body">
+                            <p>
+                                Move <strong>{deleteCandidate.name || 'Unknown Patient'}</strong> to the recycle bin?
+                            </p>
+                            <p className="delete-note">The record stays recoverable for 10 days before permanent purge.</p>
+                            <div className="patient-delete-form-field">
+                                <label htmlFor="patient-delete-reason" className="recycle-bin-detail-label">Delete Reason</label>
+                                <textarea
+                                    id="patient-delete-reason"
+                                    className="workflow-input patient-delete-textarea"
+                                    value={deleteReason}
+                                    onChange={(e) => {
+                                        setDeleteReason(e.target.value);
+                                        if (deleteError) setDeleteError('');
+                                    }}
+                                    placeholder="Why is this patient being removed from the active queue?"
+                                    rows={4}
+                                    disabled={deleting}
+                                />
+                            </div>
+                            {deleteError && <div className="form-error">⚠️ {deleteError}</div>}
+                        </div>
+                        <div className="delete-confirm-actions">
+                            <button className="form-cancel-btn" onClick={() => !deleting && setDeleteCandidate(null)}>Cancel</button>
+                            <button className="user-delete-btn danger" onClick={handleDismiss} disabled={deleting}>
+                                {deleting ? 'Archiving...' : 'Move to Recycle Bin'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body,
+            )}
+
+            {/* ── NEW: toast notification ──────────────────────────────────── */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    duration={toast.duration}
+                    onClose={() => setToast(null)}
+                />
+            )}
+            {/* ─────────────────────────────────────────────────────────────── */}
         </div>
     );
 }

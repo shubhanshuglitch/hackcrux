@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { login, register, storeAuth } from '../api/authApi.js';
 import BrandMark from './BrandMark.jsx';
 
@@ -15,6 +15,38 @@ export default function Login({ onLogin }) {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Mouse tracking for interactive bubble
+  const containerRef = useRef(null);
+  const interactiveBubbleRef = useRef(null);
+  const rafRef = useRef(null);
+
+  const handleMouseMove = useCallback((e) => {
+    const container = containerRef.current;
+    const bubble = interactiveBubbleRef.current;
+    if (!container || !bubble) return;
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      const rect = container.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+      bubble.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => {
+      container.removeEventListener('mousemove', handleMouseMove);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [handleMouseMove]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,7 +85,29 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="login-container">
+    <div className="login-container" ref={containerRef}>
+      {/* Animated Bubble Background */}
+      <div className="bubble-bg" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" style={{position:'absolute',width:0,height:0}}>
+          <defs>
+            <filter id="goo">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="16" result="blur" />
+              <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="goo" />
+              <feBlend in="SourceGraphic" in2="goo" />
+            </filter>
+          </defs>
+        </svg>
+        <div className="bubble-layer">
+          <div className="bubble bubble-1"></div>
+          <div className="bubble bubble-2"></div>
+          <div className="bubble bubble-3"></div>
+          <div className="bubble bubble-4"></div>
+          <div className="bubble bubble-5"></div>
+          <div className="bubble bubble-6"></div>
+          <div className="bubble bubble-interactive" ref={interactiveBubbleRef}></div>
+        </div>
+      </div>
+
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo"><BrandMark size={76} /></div>
@@ -98,9 +152,9 @@ export default function Login({ onLogin }) {
                 <label>Role</label>
                 <select name="role" value={formData.role} onChange={handleChange}>
                   <option value="DOCTOR">Doctor</option>
+                  <option value="SUPERVISOR">Supervisor</option>
                   <option value="NURSE">Nurse</option>
                   <option value="RECEPTIONIST">Receptionist</option>
-                  <option value="ADMIN">Administrator</option>
                 </select>
               </div>
               <div className="form-group">
@@ -112,6 +166,7 @@ export default function Login({ onLogin }) {
                   <option value="Cardiology">Cardiology</option>
                   <option value="Neurology">Neurology</option>
                   <option value="Pediatrics">Pediatrics</option>
+                  <option value="Gynecology">Gynecology</option>
                 </select>
               </div>
               {formData.role === 'DOCTOR' && (
@@ -129,6 +184,7 @@ export default function Login({ onLogin }) {
                     <option value="Allergist">Allergist</option>
                     <option value="Emergency Medicine">Emergency Medicine</option>
                     <option value="General Physician">General Physician</option>
+                    <option value="Gynecologist">Gynecologist</option>
                   </select>
                 </div>
               )}
@@ -140,7 +196,7 @@ export default function Login({ onLogin }) {
           </button>
         </form>
 
-        <div className="login-footer">
+        <div className="login-auth-footer">
           <p>
             {isSignup ? 'Already have an account? ' : "Don't have an account? "}
             <button type="button" className="toggle-btn"
@@ -150,11 +206,8 @@ export default function Login({ onLogin }) {
           </p>
         </div>
 
-        <div className="demo-users">
-          <p className="demo-label">Demo Credentials:</p>
-          <small>Username: <strong>admin</strong> — Password: <strong>password123</strong></small>
-        </div>
       </div>
+
     </div>
   );
 }
